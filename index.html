@@ -149,15 +149,38 @@
 
   <div class="main">
     <!-- DASHBOARD -->
-    <div id="page-dashboard">
-      <div class="page-title">Dashboard</div>
-      <div class="stats-row">
-        <div class="stat-box"><div class="num" id="statTotal">0</div><div class="lbl">Total Customers</div></div>
-        <div class="stat-box"><div class="num" id="statUnassigned">0</div><div class="lbl">Unassigned</div></div>
-        <div class="stat-box"><div class="num" id="statAssigned">0</div><div class="lbl">Assigned</div></div>
-        <div class="stat-box"><div class="num" id="statPaid">0</div><div class="lbl">Paid</div></div>
-      </div>
+<div id="page-dashboard">
+  <div class="page-title">Dashboard</div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="num" id="statTotal">0</div><div class="lbl">Total Customers</div></div>
+    <div class="stat-box"><div class="num" id="statUnassigned">0</div><div class="lbl">Unassigned</div></div>
+    <div class="stat-box"><div class="num" id="statAssigned">0</div><div class="lbl">Assigned</div></div>
+    <div class="stat-box"><div class="num" id="statPaid">0</div><div class="lbl">Paid</div></div>
+  </div>
+
+  <!-- TOP AGENTS LEADERBOARD -->
+  <div class="card" style="margin-top:20px;">
+    <div class="card-title">🏆 Top 10 Performing Agents (MTD)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px;">Rank</th>
+            <th>Agent</th>
+            <th>Employee ID</th>
+            <th>Customers</th>
+            <th>Collected</th>
+            <th>Outsourced</th>
+            <th>Rate %</th>
+          </tr>
+        </thead>
+        <tbody id="topAgentsTable">
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280;">Loading leaderboard...</td></tr>
+        </tbody>
+      </table>
     </div>
+  </div>
+</div>
 
     <!-- UPLOAD -->
     <div id="page-upload" class="hidden">
@@ -389,11 +412,47 @@ async function loadAll() {
   const res = await api("adminGetCustomers");
   if (res.success) {
     CUSTOMERS = res.customers || [];
-    updateStats();
-    renderCustomers();
-    loadUnassigned();
+updateStats();
+loadTopAgents();      
+renderCustomers();
+loadUnassigned();
+  }
+// ============================================================
+// TOP AGENTS LEADERBOARD
+// ============================================================
+async function loadTopAgents() {
+  const res = await api("getTopAgents");
+  const tbody = document.getElementById("topAgentsTable");
+
+  if (!res.success) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#dc2626;">Failed: ' + esc(res.message) + '</td></tr>';
+    return;
   }
 
+  const agents = res.agents || [];
+  if (!agents.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280;">No agent data yet.</td></tr>';
+    return;
+  }
+
+  const medals = ["🥇", "🥈", "🥉"];
+
+  tbody.innerHTML = agents.map((a, idx) => {
+    const medal = idx < 3 ? medals[idx] : "#" + (idx + 1);
+    const highlight = idx < 3 ? 'style="background:#1a2e1a;"' : "";
+    return `
+      <tr ${highlight}>
+        <td style="font-size:16px;">${medal}</td>
+        <td><strong>${esc(a.name)}</strong></td>
+        <td>${esc(a.employeeId)}</td>
+        <td>${a.totalCustomers}</td>
+        <td style="color:#22c55e;font-weight:700;">${a.totalCollected.toLocaleString()}</td>
+        <td>${a.totalOutsourced.toLocaleString()}</td>
+        <td>${a.rate.toFixed(1)}%</td>
+      </tr>
+    `;
+  }).join("");
+}
   const agentRes = await api("adminGetAgents");
   if (agentRes.success) {
     AGENTS = agentRes.agents || [];
