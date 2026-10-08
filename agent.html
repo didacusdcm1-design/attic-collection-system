@@ -226,11 +226,11 @@
     <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
   </div>
 
-  <div class="stats">
-    <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Total</div></div>
-    <div class="stat"><div class="num" id="statOverdue">0</div><div class="lbl">Overdue</div></div>
-    <div class="stat"><div class="num" id="statDue">0</div><div class="lbl">Total Due</div></div>
-  </div>
+<div class="stats">
+  <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Total</div></div>
+  <div class="stat"><div class="num" id="statDaily">0%</div><div class="lbl">Daily Perf</div></div>
+  <div class="stat"><div class="num" id="statMTD">0</div><div class="lbl">MTD (KES)</div></div>
+</div>
 
   <div class="search-bar">
     <input id="searchInput" placeholder="🔍 Search by name, phone or Loan ID..." oninput="renderList()">
@@ -383,18 +383,21 @@ async function loadCustomers() {
     return;
   }
   CUSTOMERS = res.customers || [];
-  updateStats();
-  renderList();
+await updateStats();
+renderList();
 }
 
-function updateStats() {
+async function updateStats() {
   document.getElementById("statTotal").textContent = CUSTOMERS.length;
 
-  const overdue = CUSTOMERS.filter(c => Number(c.overdueDays) > 0).length;
-  document.getElementById("statOverdue").textContent = overdue;
-
-  const totalDue = CUSTOMERS.reduce((sum, c) => sum + (Number(c.remainingAmount) || 0), 0);
-  document.getElementById("statDue").textContent = totalDue.toLocaleString();
+  const perf = await api("getAgentPerformance", { agentId: USER.employeeId });
+  if (perf.success) {
+    document.getElementById("statDaily").textContent = perf.dailyPercent + "%";
+    document.getElementById("statMTD").textContent = (perf.mtdCollected || 0).toLocaleString();
+  } else {
+    document.getElementById("statDaily").textContent = "0%";
+    document.getElementById("statMTD").textContent = "0";
+  }
 }
 
 // ============================================================
@@ -449,7 +452,7 @@ function openCustomer(id) {
     <div class="detail-row"><span class="l">Order Type</span><span class="v">${esc(c.orderType)}</span></div>
     <div class="detail-row"><span class="l">Mobile</span><span class="v">${esc(c.mobile)}</span></div>
     <div class="detail-row"><span class="l">Remaining</span><span class="v gold">${esc(c.remainingAmount)}</span></div>
-    <div class="detail-row"><span class="l">Due</span><span class="v">${esc(c.due)}</span></div>
+    <div class="detail-row"><span class="l">Paid Amount</span><span class="v gold">${esc(c.paidAmount || 0)}</span></div>
     <div class="detail-row"><span class="l">Overdue</span><span class="v ${Number(c.overdueDays) > 0 ? 'red' : ''}">${esc(c.overdueDays)} days</span></div>
     <div class="detail-row"><span class="l">Due Date</span><span class="v">${esc(c.dueDate)}</span></div>
     ${c.remark ? `<div class="detail-row"><span class="l">Last Remark</span><span class="v">${esc(c.remark)}</span></div>` : ""}
