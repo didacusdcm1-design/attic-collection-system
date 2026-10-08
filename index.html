@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attic Collection System</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f1115; color: #e5e7eb; min-height: 100vh;
+  }
+
+  /* ================= LOGIN SCREEN ================= */
+  #loginScreen {
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; padding: 20px;
+  }
+  .login-box { width: 100%; max-width: 380px; }
+  .brand { text-align: center; margin-bottom: 40px; }
+  .brand h1 { color: #22c55e; font-size: 22px; letter-spacing: 2px; font-weight: 800; }
+  .brand p { color: #6b7280; font-size: 12px; letter-spacing: 3px; margin-top: 6px; }
+  label { display: block; font-size: 11px; color: #9ca3af; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; }
+  input {
+    width: 100%; padding: 14px; background: #16181d; border: 1px solid #23262d;
+    border-radius: 10px; color: #fff; font-size: 15px; margin-bottom: 16px; outline: none;
+  }
+  input:focus { border-color: #22c55e; }
+  .btn {
+    padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; letter-spacing: 0.5px;
+  }
+  .btn-primary {
+    background: #22c55e; color: #000; width: 100%; padding: 16px;
+    font-size: 14px; letter-spacing: 2px; text-transform: uppercase; border-radius: 10px;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-secondary { background: #23262d; color: #e5e7eb; border: 1px solid #2e333d; }
+  .btn-secondary:hover { background: #2e333d; }
+  .error {
+    background: #dc2626; color: #fff; padding: 12px; border-radius: 8px;
+    text-align: center; font-size: 13px; margin-top: 16px; display: none;
+  }
+  .error.show { display: block; }
+
+  /* ================= APP LAYOUT ================= */
+  #appScreen { display: none; }
+  #appScreen.active { display: flex; }
+  .sidebar {
+    width: 240px; background: #16181d; border-right: 1px solid #23262d;
+    display: flex; flex-direction: column; padding: 20px 0;
+    height: 100vh; position: fixed; left: 0; top: 0;
+  }
+  .side-brand { padding: 0 20px 20px; border-bottom: 1px solid #23262d; margin-bottom: 20px; }
+  .side-brand h1 { font-size: 18px; font-weight: 800; color: #22c55e; letter-spacing: 1px; }
+  .side-brand p { font-size: 11px; color: #6b7280; letter-spacing: 2px; margin-top: 4px; }
+  .user-info {
+    padding: 12px 20px; background: #1c1f26; border-radius: 10px; margin: 0 12px 20px;
+  }
+  .user-info .name { font-size: 13px; font-weight: 600; }
+  .user-info .role { font-size: 11px; color: #22c55e; margin-top: 2px; }
+  .nav-item {
+    padding: 12px 20px; color: #9ca3af; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nav-item:hover { background: #1c1f26; color: #fff; }
+  .nav-item.active { background: #1c1f26; color: #22c55e; border-left: 3px solid #22c55e; }
+  .main { margin-left: 240px; flex: 1; padding: 24px 32px; min-height: 100vh; }
+  .page-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: #fff; }
+  .card { background: #16181d; border: 1px solid #23262d; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .card-title { font-size: 14px; font-weight: 700; color: #22c55e; letter-spacing: 1px; margin-bottom: 16px; text-transform: uppercase; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #23262d; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1000px; }
+  th {
+    background: #1c1f26; padding: 12px 14px; text-align: left; font-weight: 600;
+    color: #9ca3af; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    border-bottom: 1px solid #23262d; white-space: nowrap;
+  }
+  td { padding: 12px 14px; border-bottom: 1px solid #1c1f26; color: #e5e7eb; }
+  tr:hover td { background: #1a1d23; }
+  input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #22c55e; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge.unassigned { background: #3a2e1a; color: #f59e0b; }
+  .badge.assigned { background: #1a3a2e; color: #22c55e; }
+  .badge.processing { background: #1a2e3a; color: #3b82f6; }
+  .badge.paid { background: #2a1a3a; color: #a855f7; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stat-box { background: #16181d; border: 1px solid #23262d; border-radius: 12px; padding: 16px; }
+  .stat-box .num { font-size: 26px; font-weight: 800; color: #22c55e; }
+  .stat-box .lbl { font-size: 11px; color: #9ca3af; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
+  .hidden { display: none !important; }
+
+  /* ================= TOAST / LOADER ================= */
+  #toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: #22c55e; color: #000; padding: 14px 24px; border-radius: 10px;
+    font-weight: 600; display: none; z-index: 200;
+  }
+  #toast.error { background: #dc2626; color: #fff; }
+  #toast.show { display: block; }
+  #loader {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300;
+    display: none; justify-content: center; align-items: center;
+  }
+  #loader.show { display: flex; }
+  .spinner {
+    width: 50px; height: 50px; border: 4px solid #23262d; border-top-color: #22c55e;
+    border-radius: 50%; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN SCREEN ================= -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="brand">
+      <h1>ATTIC COLLECTION</h1>
+      <p>ADMIN LOGIN</p>
+    </div>
+    <label>Employee ID</label>
+    <input id="empId" placeholder="e.g. ADMIN001">
+    <label>Password</label>
+    <input id="pwd" type="password" placeholder="••••••••">
+    <button class="btn btn-primary" onclick="doLogin()">Login</button>
+    <div id="loginErr" class="error"></div>
+  </div>
+</div>
+
+<!-- ================= APP SCREEN ================= -->
+<div id="appScreen">
+  <div class="sidebar">
+    <div class="side-brand">
+      <h1>ATTIC COLLECTION</h1>
+      <p>ADMIN SYSTEM</p>
+    </div>
+    <div class="user-info">
+      <div class="name" id="sideUserName">-</div>
+      <div class="role" id="sideUserRole">Administrator</div>
+    </div>
+    <div class="nav-item active" onclick="showPage('dashboard', this)"><span>📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('upload', this)"><span>📤</span> Upload Customers</div>
+    <div class="nav-item" onclick="showPage('assign', this)"><span>👥</span> Assign to Agents</div>
+    <div class="nav-item" onclick="showPage('customers', this)"><span>📋</span> All Customers</div>
+    <div class="nav-item" onclick="doLogout()" style="margin-top:auto; color:#dc2626;"><span>🚪</span> Logout</div>
+  </div>
+
+  <div class="main">
+    <!-- DASHBOARD -->
+    <div id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="num" id="statTotal">0</div><div class="lbl">Total Customers</div></div>
+        <div class="stat-box"><div class="num" id="statUnassigned">0</div><div class="lbl">Unassigned</div></div>
+        <div class="stat-box"><div class="num" id="statAssigned">0</div><div class="lbl">Assigned</div></div>
+        <div class="stat-box"><div class="num" id="statPaid">0</div><div class="lbl">Paid</div></div>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div id="page-upload" class="hidden">
+      <div class="page-title">Upload Customers (CSV)</div>
+      <div class="card">
+        <div class="card-title">Select a CSV file</div>
+        <p style="font-size:13px; color:#9ca3af; margin-bottom:16px;">
+          The CSV must have all 16 columns matching your Google Sheet.
+        </p>
+        <input type="file" id="csvFile" accept=".csv">
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary" onclick="uploadCSV()" style="width:auto;">Upload</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASSIGN -->
+    <div id="page-assign" class="hidden">
+      <div class="page-title">Assign Customers to Agents</div>
+      <div class="card">
+        <div class="card-title">Step 1: Select Agent</div>
+        <select id="agentSelect" style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+          <option value="">-- Loading --</option>
+        </select>
+        <div style="margin-top:16px;">
+          <button class="btn btn-secondary" onclick="loadUnassigned()">Refresh</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Step 2: Select Customers (<span id="selectedCount">0</span> selected)</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                <th>Category</th><th>LoanID</th><th>Client</th><th>Mobile</th>
+                <th>Remaining</th><th>Due</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="assignTableBody">
+              <tr><td colspan="8" style="text-align:center;padding:40px;color:#6b7280;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary" onclick="assignSelected()">Assign Selected</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL CUSTOMERS -->
+    <div id="page-customers" class="hidden">
+      <div class="page-title">All Customers</div>
+      <div class="card">
+        <input type="text" id="custSearch" placeholder="Search by name, phone, or loan ID..."
+          oninput="renderCustomers()"
+          style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th><th>LoanID</th><th>Client</th><th>Mobile</th>
+              <th>Assigned To</th><th>Status</th><th>Remaining</th><th>Due</th>
+            </tr>
+          </thead>
+          <tbody id="customersTableBody">
+            <tr><td colspan="8" style="text-align:center;padding:40px;color:#6b7280;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="loader"><div class="spinner"></div></div>
+
+<script>
+// ============================================================
+// CONFIG - REPLACE THIS WITH YOUR APPS SCRIPT WEB APP URL
+// ============================================================
+const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+let USER = null;
+let CUSTOMERS = [];
+let AGENTS = [];
+let selectedIds = new Set();
+
+// ============================================================
+// API CALL
+// ============================================================
+async function api(action, payload = {}) {
+  showLoader(true);
+  try {
+    const params = new URLSearchParams();
+    params.append("action", action);
+    Object.keys(payload).forEach(k => {
+      if (payload[k] !== undefined && payload[k] !== null) {
+        params.append(k, typeof payload[k] === "object" ? JSON.stringify(payload[k]) : String(payload[k]));
+      }
+    });
+    const res = await fetch(API_URL + "?" + params.toString());
+    const text = await res.text();
+    console.log("API [" + action + "]:", text);
+    return JSON.parse(text);
+  } catch (err) {
+    return { success: false, message: err.message };
+  } finally {
+    showLoader(false);
+  }
+}
+
+// ============================================================
+// STARTUP
+// ============================================================
+window.addEventListener("DOMContentLoaded", () => {
+  const saved = localStorage.getItem("attic_admin_user");
+  if (saved) {
+    USER = JSON.parse(saved);
+    enterApp();
+  }
+});
+
+// ============================================================
+// LOGIN
+// ============================================================
+async function doLogin() {
+  const empId = document.getElementById("empId").value.trim();
+  const pwd = document.getElementById("pwd").value;
+  const err = document.getElementById("loginErr");
+  err.classList.remove("show");
+
+  if (!empId || !pwd) {
+    err.textContent = "Fill in both fields";
+    err.classList.add("show");
+    return;
+  }
+
+  const res = await api("login", { employeeId: empId, password: pwd });
+  if (!res.success) {
+    err.textContent = res.message || "Login failed";
+    err.classList.add("show");
+    return;
+  }
+  if ((res.user.role || "").toLowerCase() !== "admin") {
+    err.textContent = "Admin access only";
+    err.classList.add("show");
+    return;
+  }
+
+  USER = res.user;
+  localStorage.setItem("attic_admin_user", JSON.stringify(USER));
+  enterApp();
+}
+
+function enterApp() {
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("appScreen").classList.add("active");
+  document.getElementById("sideUserName").textContent = USER.fullName || USER.employeeId;
+  document.getElementById("sideUserRole").textContent = USER.role || "Admin";
+  loadAll();
+}
+
+function doLogout() {
+  localStorage.removeItem("attic_admin_user");
+  location.reload();
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(page, el) {
+  document.querySelectorAll('.main > div').forEach(d => d.classList.add('hidden'));
+  document.getElementById('page-' + page).classList.remove('hidden');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+// ============================================================
+// LOAD DATA
+// ============================================================
+async function loadAll() {
+  const res = await api("adminGetCustomers");
+  if (res.success) {
+    CUSTOMERS = res.customers || [];
+    updateStats();
+    renderCustomers();
+    loadUnassigned();
+  }
+
+  const agentRes = await api("adminGetAgents");
+  if (agentRes.success) {
+    AGENTS = agentRes.agents || [];
+    const sel = document.getElementById("agentSelect");
+    sel.innerHTML = '<option value="">-- Select Agent --</option>' +
+      AGENTS.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
+  }
+}
+
+function updateStats() {
+  document.getElementById("statTotal").textContent = CUSTOMERS.length;
+  document.getElementById("statUnassigned").textContent = CUSTOMERS.filter(c => !c.assignTo).length;
+  document.getElementById("statAssigned").textContent = CUSTOMERS.filter(c => c.assignTo && c.status !== "Paid").length;
+  document.getElementById("statPaid").textContent = CUSTOMERS.filter(c => c.status === "Paid").length;
+}
+
+// ============================================================
+// CSV UPLOAD
+// ============================================================
+async function uploadCSV() {
+  const fi = document.getElementById("csvFile");
+  if (!fi.files.length) { toast("Select a file", true); return; }
+
+  const text = await fi.files[0].text();
+  const rows = parseCSV(text);
+  if (rows.length < 2) { toast("Empty CSV", true); return; }
+
+  const data = rows.slice(1).filter(r => r.length > 0 && r[0]);
+  if (!confirm(`Upload ${data.length} customers?`)) return;
+
+  const res = await api("adminUploadCustomers", { csvData: data });
+  toast(res.message, !res.success);
+  if (res.success) { fi.value = ""; loadAll(); }
+}
+
+function parseCSV(text) {
+  const rows = []; let cur = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"' && text[i+1] === '"') { f += '"'; i++; }
+      else if (c === '"') q = false;
+      else f += c;
+    } else {
+      if (c === '"') q = true;
+      else if (c === ',') { cur.push(f); f = ""; }
+      else if (c === '\n' || c === '\r') {
+        if (f !== "" || cur.length) { cur.push(f); rows.push(cur); cur = []; f = ""; }
+        if (c === '\r' && text[i+1] === '\n') i++;
+      } else f += c;
+    }
+  }
+  if (f !== "" || cur.length) { cur.push(f); rows.push(cur); }
+  return rows;
+}
+
+// ============================================================
+// UNASSIGNED LIST
+// ============================================================
+function loadUnassigned() {
+  const u = CUSTOMERS.filter(c => !c.assignTo);
+  const tb = document.getElementById("assignTableBody");
+  tb.innerHTML = u.length ? u.map(c => `
+    <tr data-id="${c.id}">
+      <td><input type="checkbox" onchange="toggleRow('${c.id}', this.checked)"></td>
+      <td>${esc(c.category)}</td>
+      <td>${esc(c.loanId)}</td>
+      <td>${esc(c.clientName)}</td>
+      <td>${esc(c.mobile)}</td>
+      <td>${esc(c.remainingAmount)}</td>
+      <td>${esc(c.due)}</td>
+      <td><span class="badge unassigned">Unassigned</span></td>
+    </tr>`).join("")
+    : '<tr><td colspan="8" style="text-align:center;padding:40px;color:#6b7280;">No unassigned customers.</td></tr>';
+}
+
+function toggleRow(id, c) {
+  if (c) selectedIds.add(id); else selectedIds.delete(id);
+  document.getElementById("selectedCount").textContent = selectedIds.size;
+}
+
+function toggleSelectAll() {
+  const all = document.getElementById("selectAll").checked;
+  document.querySelectorAll("#assignTableBody input[type='checkbox']").forEach(cb => {
+    cb.checked = all;
+    const id = cb.closest("tr").dataset.id;
+    if (all) selectedIds.add(id); else selectedIds.delete(id);
+  });
+  document.getElementById("selectedCount").textContent = selectedIds.size;
+}
+
+// ============================================================
+// ASSIGN ACTION
+// ============================================================
+async function assignSelected() {
+  const aid = document.getElementById("agentSelect").value;
+  if (!aid) { toast("Select an agent", true); return; }
+  if (!selectedIds.size) { toast("Select customers", true); return; }
+  if (!confirm(`Assign ${selectedIds.size} to ${aid}?`)) return;
+
+  const res = await api("adminAssignCustomers", {
+    customerIds: Array.from(selectedIds),
+    agentId: aid
+  });
+  toast(res.message, !res.success);
+  if (res.success) {
+    selectedIds.clear();
+    document.getElementById("selectedCount").textContent = 0;
+    document.getElementById("selectAll").checked = false;
+    loadAll();
+  }
+}
+
+// ============================================================
+// ALL CUSTOMERS TABLE
+// ============================================================
+function renderCustomers() {
+  const q = (document.getElementById("custSearch").value || "").toLowerCase();
+  const list = CUSTOMERS.filter(c => !q ||
+    (c.clientName || "").toLowerCase().includes(q) ||
+    (c.mobile || "").includes(q) ||
+    (c.loanId || "").toLowerCase().includes(q)
+  );
+
+  document.getElementById("customersTableBody").innerHTML = list.length ? list.map(c => {
+    const s = (c.status || "unassigned").toLowerCase();
+    return `
+      <tr>
+        <td>${esc(c.category)}</td>
+        <td>${esc(c.loanId)}</td>
+        <td>${esc(c.clientName)}</td>
+        <td>${esc(c.mobile)}</td>
+        <td>${esc(c.assignTo || "-")}</td>
+        <td><span class="badge ${s}">${s.toUpperCase()}</span></td>
+        <td>${esc(c.remainingAmount)}</td>
+        <td>${esc(c.due)}</td>
+      </tr>`;
+  }).join("")
+    : '<tr><td colspan="8" style="text-align:center;padding:40px;color:#6b7280;">No customers.</td></tr>';
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+function toast(m, e) {
+  const t = document.getElementById("toast");
+  t.textContent = m;
+  t.className = e ? "error show" : "show";
+  setTimeout(() => t.className = "", 3000);
+}
+function showLoader(s) {
+  document.getElementById("loader").classList.toggle("show", s);
+}
+</script>
+</body>
+</html>
