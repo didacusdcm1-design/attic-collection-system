@@ -175,66 +175,63 @@
 
     <!-- ASSIGN -->
     <div id="page-assign" class="hidden">
-  <div class="page-title">Assign Customers to Agents</div>
+      <div class="page-title">Assign Customers to Agents</div>
 
-  <!-- STEP 1: Filters -->
-  <div class="card">
-    <div class="card-title">Step 1: Filter Customers</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <!-- STEP 1: Filters -->
+      <div class="card">
+        <div class="card-title">Step 1: Filter Customers</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label>Order Type</label>
+            <select id="filterOrderType" style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+              <option value="">All Types</option>
+              <option value="Reloan">Reloan</option>
+              <option value="First loan">First Loan</option>
+            </select>
+          </div>
+          <div>
+            <label>Show First</label>
+            <input id="filterLimit" type="number" min="1" max="500" value="50"
+                   placeholder="e.g. 50"
+                   style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <button class="btn btn-secondary" onclick="loadUnassigned()">Apply Filters</button>
+          <span style="margin-left:12px;color:#9ca3af;font-size:12px;" id="filterInfo">Showing: --</span>
+        </div>
+      </div>
 
-      <div>
-        <label>Order Type</label>
-        <select id="filterOrderType" style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
-          <option value="">All Types</option>
-          <option value="Reloan">Reloan</option>
-          <option value="First loan">First Loan</option>
+      <!-- STEP 2: Assign Agent -->
+      <div class="card">
+        <div class="card-title">Step 2: Select Agent</div>
+        <select id="agentSelect" style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+          <option value="">-- Loading --</option>
         </select>
       </div>
 
-      <div>
-        <label>Show First</label>
-        <input id="filterLimit" type="number" min="1" max="500" value="50"
-               placeholder="e.g. 50"
-               style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+      <!-- STEP 3: Select & Assign -->
+      <div class="card">
+        <div class="card-title">Step 3: Select Customers (<span id="selectedCount">0</span> selected)</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                <th>Category</th><th>LoanID</th><th>Client</th><th>Mobile</th>
+                <th>Remaining</th><th>Order Type</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="assignTableBody">
+              <tr><td colspan="8" style="text-align:center;padding:40px;color:#6b7280;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary" onclick="assignSelected()">Assign Selected</button>
+        </div>
       </div>
-
     </div>
-    <div style="margin-top:16px;">
-      <button class="btn btn-secondary" onclick="loadUnassigned()">Apply Filters</button>
-      <span style="margin-left:12px;color:#9ca3af;font-size:12px;" id="filterInfo">Showing: --</span>
-    </div>
-  </div>
-
-  <!-- STEP 2: Assign Agent -->
-  <div class="card">
-    <div class="card-title">Step 2: Select Agent</div>
-    <select id="agentSelect" style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
-      <option value="">-- Loading --</option>
-    </select>
-  </div>
-
-  <!-- STEP 3: Select & Assign -->
-  <div class="card">
-    <div class="card-title">Step 3: Select Customers (<span id="selectedCount">0</span> selected)</div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-            <th>Category</th><th>LoanID</th><th>Client</th><th>Mobile</th>
-            <th>Remaining</th><th>Order Type</th><th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="assignTableBody">
-          <tr><td colspan="8" style="text-align:center;padding:40px;color:#6b7280;">Loading...</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div style="margin-top:16px;">
-      <button class="btn btn-primary" onclick="assignSelected()">Assign Selected</button>
-    </div>
-  </div>
-</div>
 
     <!-- ALL CUSTOMERS -->
     <div id="page-customers" class="hidden">
@@ -269,7 +266,7 @@
 // CONFIG - REPLACE THIS WITH YOUR APPS SCRIPT WEB APP URL
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbwvDjV7tCyZQapgRTNxkKLRAYITYI7Iyg6rCnEySQWAt2g9rre4bpcv_Whu_HczaJZIKw/exec";
- 
+
 let USER = null;
 let CUSTOMERS = [];
 let AGENTS = [];
@@ -298,6 +295,7 @@ async function api(action, payload = {}) {
     showLoader(false);
   }
 }
+
 // POST helper for large payloads (CSV uploads)
 async function apiPost(action, payload = {}) {
   showLoader(true);
@@ -316,6 +314,7 @@ async function apiPost(action, payload = {}) {
     showLoader(false);
   }
 }
+
 // ============================================================
 // STARTUP
 // ============================================================
@@ -395,17 +394,18 @@ async function loadAll() {
   }
 
   const agentRes = await api("adminGetAgents");
-if (agentRes.success) {
-  AGENTS = agentRes.agents || [];
-  const sel = document.getElementById("agentSelect");
-  sel.innerHTML = '<option value="">-- Select Agent --</option>' +
-    AGENTS.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
+  if (agentRes.success) {
+    AGENTS = agentRes.agents || [];
+    const sel = document.getElementById("agentSelect");
+    sel.innerHTML = '<option value="">-- Select Agent --</option>' +
+      AGENTS.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
 
-  // Auto-apply filters when changed (must be AFTER agentSelect is populated)
-  const ft = document.getElementById("filterOrderType");
-  const fl = document.getElementById("filterLimit");
-  if (ft) ft.addEventListener("change", loadUnassigned);
-  if (fl) fl.addEventListener("change", loadUnassigned);
+    // Auto-apply filters when changed
+    const ft = document.getElementById("filterOrderType");
+    const fl = document.getElementById("filterLimit");
+    if (ft) ft.addEventListener("change", loadUnassigned);
+    if (fl) fl.addEventListener("change", loadUnassigned);
+  }
 }
 
 function updateStats() {
@@ -459,30 +459,23 @@ function parseCSV(text) {
 // UNASSIGNED LIST
 // ============================================================
 function loadUnassigned() {
-  // Read filter values
   const orderTypeFilter = (document.getElementById("filterOrderType").value || "").trim();
   const limit = parseInt(document.getElementById("filterLimit").value, 10) || 50;
 
-  // Filter all unassigned customers
   let unassigned = CUSTOMERS.filter(c => !c.assignTo);
 
-  // Apply Order Type filter if selected
   if (orderTypeFilter) {
-    unassigned = unassigned.filter(c => 
+    unassigned = unassigned.filter(c =>
       String(c.orderType || "").trim().toLowerCase() === orderTypeFilter.toLowerCase()
     );
   }
 
   const totalUnassigned = unassigned.length;
-
-  // Apply limit
   const limited = unassigned.slice(0, limit);
 
-  // Update the info line
-  document.getElementById("filterInfo").textContent = 
+  document.getElementById("filterInfo").textContent =
     "Showing " + limited.length + " of " + totalUnassigned + " unassigned";
 
-  // Render
   const tb = document.getElementById("assignTableBody");
   if (!limited.length) {
     tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#6b7280;">No unassigned customers match the filter.</td></tr>';
@@ -500,6 +493,26 @@ function loadUnassigned() {
       <td>${esc(c.orderType)}</td>
       <td><span class="badge unassigned">Unassigned</span></td>
     </tr>`).join("");
+}
+
+// ============================================================
+// TOGGLE / SELECT HELPERS
+// ============================================================
+function toggleRow(id, checked) {
+  if (checked) selectedIds.add(id); else selectedIds.delete(id);
+  document.getElementById("selectedCount").textContent = selectedIds.size;
+}
+
+function toggleSelectAll() {
+  const all = document.getElementById("selectAll").checked;
+  document.querySelectorAll("#assignTableBody input[type='checkbox']").forEach(cb => {
+    cb.checked = all;
+    const id = cb.closest("tr").dataset.id;
+    if (id) {
+      if (all) selectedIds.add(id); else selectedIds.delete(id);
+    }
+  });
+  document.getElementById("selectedCount").textContent = selectedIds.size;
 }
 
 // ============================================================
@@ -536,7 +549,7 @@ function renderCustomers() {
   );
 
   document.getElementById("customersTableBody").innerHTML = list.length ? list.map(c => {
-    const s = (c.status || "unassigned").toLowerCase();
+    const s = (c.status || "unassigned").toLowerCase().replace(/\s+/g, "");
     return `
       <tr>
         <td>${esc(c.category)}</td>
