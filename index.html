@@ -269,7 +269,24 @@ async function api(action, payload = {}) {
     showLoader(false);
   }
 }
-
+// POST helper for large payloads (CSV uploads)
+async function apiPost(action, payload = {}) {
+  showLoader(true);
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: action, ...payload })
+    });
+    const text = await res.text();
+    console.log("POST [" + action + "]:", text.substring(0, 300));
+    return JSON.parse(text);
+  } catch (err) {
+    return { success: false, message: "Network error: " + err.message };
+  } finally {
+    showLoader(false);
+  }
+}
 // ============================================================
 // STARTUP
 // ============================================================
@@ -378,7 +395,7 @@ async function uploadCSV() {
   const data = rows.slice(1).filter(r => r.length > 0 && r[0]);
   if (!confirm(`Upload ${data.length} customers?`)) return;
 
-  const res = await api("adminUploadCustomers", { csvData: data });
+  const res = await apiPost("adminUploadCustomers", { csvData: data });
   toast(res.message, !res.success);
   if (res.success) { fi.value = ""; loadAll(); }
 }
