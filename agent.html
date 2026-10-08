@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Attic Collection - Agent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f1115; color: #e5e7eb;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ================= LOGIN ================= */
+  #loginScreen {
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; padding: 20px;
+  }
+  .login-box { width: 100%; max-width: 380px; }
+  .brand { text-align: center; margin-bottom: 40px; }
+  .brand h1 { color: #22c55e; font-size: 22px; letter-spacing: 2px; font-weight: 800; }
+  .brand p { color: #6b7280; font-size: 12px; letter-spacing: 3px; margin-top: 6px; }
+  label { display: block; font-size: 11px; color: #9ca3af; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; }
+  input {
+    width: 100%; padding: 14px; background: #16181d; border: 1px solid #23262d;
+    border-radius: 10px; color: #fff; font-size: 15px; margin-bottom: 16px; outline: none;
+  }
+  input:focus { border-color: #22c55e; }
+  .btn-primary {
+    width: 100%; padding: 16px; background: #22c55e; color: #000; border: none;
+    border-radius: 10px; font-size: 14px; font-weight: 700; letter-spacing: 2px;
+    cursor: pointer; text-transform: uppercase;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .error {
+    background: #dc2626; color: #fff; padding: 12px; border-radius: 8px;
+    text-align: center; font-size: 13px; margin-top: 16px; display: none;
+  }
+  .error.show { display: block; }
+
+  /* ================= APP ================= */
+  #appScreen { display: none; }
+  #appScreen.active { display: block; }
+
+  .header {
+    position: sticky; top: 0; z-index: 10;
+    background: #16181d; border-bottom: 1px solid #23262d;
+    padding: 14px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .header .info h2 {
+    color: #22c55e; font-size: 16px; font-weight: 800; letter-spacing: 1px;
+  }
+  .header .info p {
+    color: #9ca3af; font-size: 11px; letter-spacing: 1px; margin-top: 2px;
+  }
+  .logout-btn {
+    background: #23262d; border: 1px solid #2e333d; color: #dc2626;
+    padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    cursor: pointer; letter-spacing: 1px;
+  }
+
+  /* ================= STATS ================= */
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px; padding: 12px 16px;
+  }
+  .stat {
+    background: #16181d; border: 1px solid #23262d;
+    border-radius: 10px; padding: 10px; text-align: center;
+  }
+  .stat .num { color: #22c55e; font-size: 20px; font-weight: 800; }
+  .stat .lbl { color: #6b7280; font-size: 9px; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+
+  /* ================= SEARCH ================= */
+  .search-bar {
+    padding: 0 16px 12px;
+  }
+  .search-bar input {
+    margin-bottom: 0;
+    padding: 12px 14px;
+    background: #16181d;
+    border: 1px solid #23262d;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  /* ================= CUSTOMER CARDS ================= */
+  .list { padding: 0 16px 100px; }
+  .customer {
+    background: #16181d; border: 1px solid #23262d;
+    border-radius: 12px; padding: 14px; margin-bottom: 10px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .customer:active { background: #1e2128; }
+  .cust-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .cust-name {
+    font-size: 15px; font-weight: 700; color: #fff;
+    max-width: 65%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .badge {
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .badge.processing { background: #1a2e3a; color: #3b82f6; }
+  .badge.assigned { background: #1a3a2e; color: #22c55e; }
+  .badge.paid { background: #2a1a3a; color: #a855f7; }
+  .badge.unassigned { background: #3a2e1a; color: #f59e0b; }
+  .cust-detail {
+    font-size: 12px; color: #9ca3af; margin-bottom: 4px;
+    display: flex; justify-content: space-between;
+  }
+  .cust-detail .val { color: #e5e7eb; font-weight: 600; }
+  .cust-detail .val.gold { color: #22c55e; }
+  .cust-detail .val.red { color: #dc2626; }
+
+  /* ================= MODAL ================= */
+  .modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 100;
+    justify-content: center; align-items: flex-end;
+    padding: 0;
+  }
+  .modal.active { display: flex; }
+  .modal-content {
+    background: #16181d; border-radius: 20px 20px 0 0;
+    padding: 24px 20px 30px;
+    width: 100%; max-width: 500px;
+    max-height: 92vh; overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-content h3 {
+    color: #22c55e; font-size: 15px; margin-bottom: 4px; letter-spacing: 1px;
+  }
+  .modal-content .sub {
+    color: #6b7280; font-size: 11px; margin-bottom: 20px; letter-spacing: 1px;
+  }
+  .detail-row {
+    display: flex; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid #1c1f26; font-size: 13px;
+  }
+  .detail-row .l { color: #9ca3af; }
+  .detail-row .v { color: #fff; font-weight: 600; text-align: right; max-width: 60%; }
+  .detail-row .v.gold { color: #22c55e; }
+  .detail-row .v.red { color: #dc2626; }
+  .form-group { margin-top: 16px; }
+  .form-group label { font-size: 10px; }
+  select, textarea {
+    width: 100%; padding: 12px;
+    background: #0f1115; border: 1px solid #23262d;
+    border-radius: 10px; color: #fff; font-size: 14px;
+    outline: none; font-family: inherit;
+  }
+  select:focus, textarea:focus { border-color: #22c55e; }
+  textarea { resize: vertical; min-height: 70px; }
+  .modal-actions {
+    display: flex; gap: 10px; margin-top: 20px;
+  }
+  .modal-actions button { flex: 1; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; font-size: 13px; letter-spacing: 1px; }
+  .modal-actions .cancel { background: #23262d; color: #e5e7eb; }
+  .modal-actions .confirm { background: #22c55e; color: #000; }
+
+  /* ================= TOAST / LOADER ================= */
+  #toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: #22c55e; color: #000; padding: 14px 22px;
+    border-radius: 10px; font-weight: 600; font-size: 13px;
+    display: none; z-index: 200; max-width: 90%; text-align: center;
+  }
+  #toast.error { background: #dc2626; color: #fff; }
+  #toast.show { display: block; }
+  #loader {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 300; display: none; justify-content: center; align-items: center;
+  }
+  #loader.show { display: flex; }
+  .spinner {
+    width: 46px; height: 46px;
+    border: 4px solid #23262d; border-top-color: #22c55e;
+    border-radius: 50%; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ================= EMPTY ================= */
+  .empty {
+    text-align: center; padding: 60px 20px; color: #6b7280; font-size: 14px;
+  }
+  .empty .big { font-size: 40px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="brand">
+      <h1>ATTIC COLLECTION</h1>
+      <p>AGENT LOGIN</p>
+    </div>
+    <label>Employee ID</label>
+    <input id="empId" placeholder="e.g. AGENT001" autocomplete="username">
+    <label>Password</label>
+    <input id="pwd" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn-primary" onclick="doLogin()">Login</button>
+    <div id="loginErr" class="error"></div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="appScreen">
+  <div class="header">
+    <div class="info">
+      <h2 id="agentName">-</h2>
+      <p id="agentId">-</p>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Total</div></div>
+    <div class="stat"><div class="num" id="statOverdue">0</div><div class="lbl">Overdue</div></div>
+    <div class="stat"><div class="num" id="statDue">0</div><div class="lbl">Total Due</div></div>
+  </div>
+
+  <div class="search-bar">
+    <input id="searchInput" placeholder="🔍 Search by name, phone or Loan ID..." oninput="renderList()">
+  </div>
+
+  <div class="list" id="customerList">
+    <div class="empty">
+      <div class="big">⏳</div>
+      Loading customers...
+    </div>
+  </div>
+</div>
+
+<!-- ================= CUSTOMER MODAL ================= -->
+<div id="customerModal" class="modal">
+  <div class="modal-content">
+    <h3 id="modalName">Customer</h3>
+    <div class="sub" id="modalLoan">-</div>
+
+    <div id="modalDetails"></div>
+
+    <div class="form-group">
+      <label>Update Status</label>
+      <select id="statusSelect">
+        <option value="">-- Keep current --</option>
+        <option value="Processing">Processing</option>
+        <option value="Not Answering">Not Answering</option>
+        <option value="Promised to Pay">Promised to Pay</option>
+        <option value="Switched Off">Switched Off</option>
+        <option value="Paid">Paid (Full payment)</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Amount Paid (Optional)</label>
+      <input id="amountInput" type="number" placeholder="e.g. 500" style="margin-bottom:0;padding:12px;background:#0f1115;border:1px solid #23262d;border-radius:10px;color:#fff;font-size:14px;">
+    </div>
+
+    <div class="form-group">
+      <label>Remark / Comment</label>
+      <textarea id="remarkInput" placeholder="e.g. Client promised to pay tomorrow..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal()">Cancel</button>
+      <button class="confirm" onclick="saveCustomer()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="loader"><div class="spinner"></div></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+let USER = JSON.parse(localStorage.getItem("attic_agent_user") || "null");
+let CUSTOMERS = [];
+let selectedCustomer = null;
+
+// ============================================================
+// API CALL
+// ============================================================
+async function api(action, payload = {}) {
+  showLoader(true);
+  try {
+    const params = new URLSearchParams();
+    params.append("action", action);
+    Object.keys(payload).forEach(k => {
+      if (payload[k] !== undefined && payload[k] !== null) {
+        params.append(k, typeof payload[k] === "object" ? JSON.stringify(payload[k]) : String(payload[k]));
+      }
+    });
+    const res = await fetch(API_URL + "?" + params.toString());
+    const text = await res.text();
+    console.log("API [" + action + "]:", text);
+    return JSON.parse(text);
+  } catch (err) {
+    return { success: false, message: err.message };
+  } finally {
+    showLoader(false);
+  }
+}
+
+// ============================================================
+// STARTUP
+// ============================================================
+window.addEventListener("DOMContentLoaded", () => {
+  if (USER) enterApp();
+});
+
+// ============================================================
+// LOGIN
+// ============================================================
+async function doLogin() {
+  const empId = document.getElementById("empId").value.trim();
+  const pwd = document.getElementById("pwd").value;
+  const err = document.getElementById("loginErr");
+  err.classList.remove("show");
+
+  if (!empId || !pwd) {
+    err.textContent = "Please fill in both fields";
+    err.classList.add("show");
+    return;
+  }
+
+  const res = await api("login", { employeeId: empId, password: pwd });
+  if (!res.success) {
+    err.textContent = res.message || "Login failed";
+    err.classList.add("show");
+    return;
+  }
+  const role = (res.user.role || "").toLowerCase();
+  if (role !== "employee" && role !== "agent") {
+    err.textContent = "This app is for agents only";
+    err.classList.add("show");
+    return;
+  }
+
+  USER = res.user;
+  localStorage.setItem("attic_agent_user", JSON.stringify(USER));
+  enterApp();
+}
+
+function enterApp() {
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("appScreen").classList.add("active");
+  document.getElementById("agentName").textContent = USER.fullName || USER.employeeId;
+  document.getElementById("agentId").textContent = USER.employeeId;
+  loadCustomers();
+}
+
+function doLogout() {
+  if (!confirm("Log out of Attic Collection?")) return;
+  localStorage.removeItem("attic_agent_user");
+  location.reload();
+}
+
+// ============================================================
+// LOAD CUSTOMERS
+// ============================================================
+async function loadCustomers() {
+  const res = await api("getAgentCustomers", { agentId: USER.employeeId });
+  if (!res.success) {
+    toast(res.message || "Failed to load customers", true);
+    return;
+  }
+  CUSTOMERS = res.customers || [];
+  updateStats();
+  renderList();
+}
+
+function updateStats() {
+  document.getElementById("statTotal").textContent = CUSTOMERS.length;
+
+  const overdue = CUSTOMERS.filter(c => Number(c.overdueDays) > 0).length;
+  document.getElementById("statOverdue").textContent = overdue;
+
+  const totalDue = CUSTOMERS.reduce((sum, c) => sum + (Number(c.remainingAmount) || 0), 0);
+  document.getElementById("statDue").textContent = totalDue.toLocaleString();
+}
+
+// ============================================================
+// RENDER LIST
+// ============================================================
+function renderList() {
+  const q = (document.getElementById("searchInput").value || "").toLowerCase().trim();
+  const filtered = CUSTOMERS.filter(c => !q ||
+    (c.clientName || "").toLowerCase().includes(q) ||
+    (c.mobile || "").includes(q) ||
+    (c.loanId || "").toLowerCase().includes(q)
+  );
+
+  const el = document.getElementById("customerList");
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty"><div class="big">📭</div>No customers assigned yet.</div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(c => {
+    const status = (c.status || "processing").toLowerCase().replace(/\s+/g, "");
+    const overdue = Number(c.overdueDays) > 0;
+    return `
+      <div class="customer" onclick="openCustomer('${c.id}')">
+        <div class="cust-header">
+          <div class="cust-name">${esc(c.clientName)}</div>
+          <div class="badge ${status}">${esc(c.status || "Processing").toUpperCase()}</div>
+        </div>
+        <div class="cust-detail"><span>📱 Mobile</span><span class="val">${esc(c.mobile)}</span></div>
+        <div class="cust-detail"><span>💰 Remaining</span><span class="val gold">${esc(c.remainingAmount)}</span></div>
+        ${overdue ? `<div class="cust-detail"><span>⚠️ Overdue</span><span class="val red">${esc(c.overdueDays)} days</span></div>` : ""}
+        <div class="cust-detail"><span>🆔 Loan ID</span><span class="val">${esc(c.loanId)}</span></div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ============================================================
+// OPEN MODAL
+// ============================================================
+function openCustomer(id) {
+  const c = CUSTOMERS.find(x => x.id === id);
+  if (!c) return;
+  selectedCustomer = c;
+
+  document.getElementById("modalName").textContent = c.clientName;
+  document.getElementById("modalLoan").textContent = "Loan ID: " + c.loanId;
+
+  document.getElementById("modalDetails").innerHTML = `
+    <div class="detail-row"><span class="l">Category</span><span class="v">${esc(c.category)}</span></div>
+    <div class="detail-row"><span class="l">Business</span><span class="v">${esc(c.businessName)}</span></div>
+    <div class="detail-row"><span class="l">Order Type</span><span class="v">${esc(c.orderType)}</span></div>
+    <div class="detail-row"><span class="l">Mobile</span><span class="v">${esc(c.mobile)}</span></div>
+    <div class="detail-row"><span class="l">Remaining</span><span class="v gold">${esc(c.remainingAmount)}</span></div>
+    <div class="detail-row"><span class="l">Due</span><span class="v">${esc(c.due)}</span></div>
+    <div class="detail-row"><span class="l">Overdue</span><span class="v ${Number(c.overdueDays) > 0 ? 'red' : ''}">${esc(c.overdueDays)} days</span></div>
+    <div class="detail-row"><span class="l">Due Date</span><span class="v">${esc(c.dueDate)}</span></div>
+    ${c.remark ? `<div class="detail-row"><span class="l">Last Remark</span><span class="v">${esc(c.remark)}</span></div>` : ""}
+  `;
+
+  document.getElementById("statusSelect").value = "";
+  document.getElementById("amountInput").value = "";
+  document.getElementById("remarkInput").value = "";
+
+  document.getElementById("customerModal").classList.add("active");
+}
+
+function closeModal() {
+  document.getElementById("customerModal").classList.remove("active");
+  selectedCustomer = null;
+}
+
+// ============================================================
+// SAVE CUSTOMER
+// ============================================================
+async function saveCustomer() {
+  if (!selectedCustomer) return;
+
+  const status = document.getElementById("statusSelect").value;
+  const amount = document.getElementById("amountInput").value;
+  const remark = document.getElementById("remarkInput").value.trim();
+
+  if (!status && !amount && !remark) {
+    toast("Nothing to update", true);
+    return;
+  }
+
+  const res = await api("updateCustomer", {
+    id: selectedCustomer.id,
+    status: status || "",
+    amountPaid: amount || "",
+    remark: remark || ""
+  });
+
+  toast(res.message, !res.success);
+  if (res.success) {
+    closeModal();
+    loadCustomers();
+  }
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+function toast(m, e) {
+  const t = document.getElementById("toast");
+  t.textContent = m;
+  t.className = e ? "error show" : "show";
+  setTimeout(() => t.className = "", 3000);
+}
+function showLoader(s) {
+  document.getElementById("loader").classList.toggle("show", s);
+}
+</script>
+</body>
+</html>
