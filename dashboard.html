@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attic Collection - Analytics</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f1115; color: #e5e7eb; min-height: 100vh;
+  }
+  .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+  /* HEADER */
+  .dash-header {
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+    gap: 20px; padding-bottom: 20px; border-bottom: 1px solid #23262d; margin-bottom: 24px;
+  }
+  .dash-header h1 { color: #22c55e; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+  .dash-header p { color: #6b7280; font-size: 12px; margin-top: 4px; }
+  .header-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .header-controls select {
+    background: #16181d; color: #fff; border: 1px solid #23262d;
+    padding: 8px 12px; border-radius: 8px; font-size: 13px; outline: none;
+  }
+  .btn {
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; letter-spacing: 0.5px;
+  }
+  .btn-primary { background: #22c55e; color: #000; }
+  .btn-primary:hover { background: #16a34a; }
+  .btn-warning { background: #f59e0b; color: #000; }
+  .btn-warning:hover { background: #d97706; }
+
+  /* ERROR */
+  .error-box {
+    background: #7f1d1d; border-left: 4px solid #dc2626;
+    color: #fff; padding: 14px; border-radius: 8px; margin-bottom: 16px;
+  }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .kpi-card {
+    padding: 18px 16px; border-radius: 12px; color: #fff;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .kpi-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+  .kpi-value { font-size: 24px; font-weight: 800; }
+  .kpi-blue { background: linear-gradient(135deg, #1e3a5f, #2b6a8f); }
+  .kpi-green { background: linear-gradient(135deg, #14532d, #3b9e6b); }
+  .kpi-orange { background: linear-gradient(135deg, #78350f, #b87a2a); }
+  .kpi-red { background: linear-gradient(135deg, #7f1d1d, #b83a3a); }
+  .kpi-purple { background: linear-gradient(135deg, #4c1d95, #6a3b9e); }
+
+  /* RATE PANEL */
+  .rate-panel {
+    background: #16181d; border: 1px solid #23262d;
+    border-radius: 12px; padding: 16px; margin-bottom: 24px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+  }
+  .rate-panel label { font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; }
+  .rate-panel input {
+    background: #0f1115; color: #22c55e; border: 1px solid #23262d;
+    padding: 8px 12px; border-radius: 8px; font-size: 16px; font-weight: 700;
+    width: 80px; text-align: center; outline: none;
+  }
+
+  /* PANELS */
+  .panel {
+    background: #16181d; border: 1px solid #23262d;
+    border-radius: 12px; padding: 20px; margin-bottom: 24px;
+  }
+  .panel-title {
+    color: #22c55e; font-size: 13px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 16px; padding-bottom: 10px;
+    border-bottom: 1px solid #23262d;
+  }
+
+  /* TABLES */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 800px; }
+  th {
+    text-align: left; padding: 10px 12px;
+    background: #1c1f26; color: #22c55e;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    border-bottom: 1px solid #23262d; white-space: nowrap;
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid #1c1f26; color: #e5e7eb; }
+  tr:hover td { background: #1a1d23; }
+  td:first-child { font-weight: 600; color: #fff; }
+
+  /* COMPANY SECTION */
+  .company-section {
+    background: #16181d; border: 1px solid #23262d;
+    border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  }
+  .company-section h2 {
+    color: #22c55e; font-size: 16px; font-weight: 700;
+    letter-spacing: 1px; margin-bottom: 16px;
+    padding-bottom: 10px; border-bottom: 1px solid #23262d;
+  }
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 18px;
+  }
+  .stat-box {
+    background: #1c1f26; border-left: 3px solid #22c55e;
+    border-radius: 6px; padding: 10px 12px;
+  }
+  .stat-box span { color: #9ca3af; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+  .stat-box strong { color: #fff; font-size: 15px; }
+
+  /* PAGINATION */
+  .pagination {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 12px; font-size: 12px; color: #6b7280;
+  }
+  .pagination button {
+    background: #23262d; color: #22c55e; border: 1px solid #2e333d;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+    margin-left: 6px;
+  }
+  .pagination button:hover:not(:disabled) { background: #22c55e; color: #000; }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* SUBTOTAL */
+  .subtotal {
+    background: linear-gradient(135deg, #16181d, #1c1f26);
+    border: 2px solid #22c55e; text-align: center;
+    padding: 32px 20px; border-radius: 12px;
+  }
+  .subtotal h3 {
+    color: #22c55e; font-size: 14px; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .subtotal-value {
+    font-size: 42px; font-weight: 800; color: #fff;
+    text-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
+  }
+  .subtotal-value span { color: #22c55e; font-size: 22px; margin-right: 8px; }
+  .subtotal-note { color: #6b7280; font-size: 11px; margin-top: 10px; }
+
+  /* LOADER */
+  .loader {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 1000; display: none; justify-content: center; align-items: center;
+  }
+  .loader.show { display: flex; }
+  .spinner {
+    width: 46px; height: 46px;
+    border: 4px solid #23262d; border-top-color: #22c55e;
+    border-radius: 50%; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 768px) {
+    .dash-header { flex-direction: column; align-items: flex-start; }
+    .subtotal-value { font-size: 28px; }
+    .subtotal-value span { font-size: 16px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="dash-header">
+    <div>
+      <h1>📈 ATTIC COLLECTION ANALYTICS</h1>
+      <p>Live Master Data · <span id="lastUpdated">--:--:--</span></p>
+    </div>
+    <div class="header-controls">
+      <select id="companyFilter">
+        <option value="all">All Companies</option>
+      </select>
+      <button class="btn btn-primary" onclick="loadDashboard()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div id="errorBox" class="error-box" style="display:none;"></div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- RATE CONTROL -->
+  <div class="rate-panel">
+    <label>⚙️ Attic Commission Rate:</label>
+    <input id="atticRate" type="number" min="0" max="100" step="0.1" value="5">
+    <span style="color:#22c55e;font-weight:700;">%</span>
+    <button class="btn btn-primary" onclick="saveRate()">Save Rate</button>
+    <span style="color:#6b7280;font-size:12px;">This rate applies to all companies and the grand total.</span>
+  </div>
+
+  <!-- COMPANY SUMMARY -->
+  <div class="panel">
+    <div class="panel-title">Company Summary</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Customers</th>
+            <th>Daily Repay Rate</th>
+            <th>Remaining Due</th>
+            <th>Collected</th>
+            <th>Outsourced</th>
+            <th>Attic Earning</th>
+          </tr>
+        </thead>
+        <tbody id="summaryTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- COMPANY SECTIONS -->
+  <div id="companySections"></div>
+
+  <!-- GRAND TOTAL -->
+  <div class="subtotal">
+    <h3>Grand Total Attic Earnings (MTD)</h3>
+    <div class="subtotal-value" id="grandAtticEarning">
+      <span>KES</span>0
+    </div>
+    <p class="subtotal-note" id="grandTotalNote">Based on 5% commission rate</p>
+  </div>
+
+</div>
+
+<div class="loader" id="loader"><div class="spinner"></div></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbwvDjV7tCyZQapgRTNxkKLRAYITYI7Iyg6rCnEySQWAt2g9rre4bpcv_Whu_HczaJZIKw/exec";
+
+let GLOBAL = null;
+
+async function api(action, payload = {}) {
+  showLoader(true);
+  try {
+    const params = new URLSearchParams();
+    params.append("action", action);
+    Object.keys(payload).forEach(k => {
+      if (payload[k] !== undefined && payload[k] !== null) {
+        params.append(k, String(payload[k]));
+      }
+    });
+    const res = await fetch(API_URL + "?" + params.toString());
+    const text = await res.text();
+    return JSON.parse(text);
+  } catch (err) {
+    return { success: false, message: err.message };
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function loadDashboard() {
+  hideError();
+  const res = await api("getAnalytics");
+  if (!res.success) {
+    showError(res.message || "Failed to load analytics");
+    return;
+  }
+  GLOBAL = res;
+  document.getElementById("lastUpdated").textContent = "Last Updated: " + (res.lastUpdated || "--");
+  document.getElementById("atticRate").value = res.atticRate || 5;
+
+  populateCompanyFilter(res.companies);
+  renderKPIs();
+  renderSummaryTable();
+  renderCompanySections();
+  renderGrandTotal();
+}
+
+function populateCompanyFilter(companies) {
+  const sel = document.getElementById("companyFilter");
+  const current = sel.value;
+  sel.innerHTML = '<option value="all">All Companies</option>' +
+    companies.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join("");
+  sel.value = current || "all";
+  sel.onchange = () => {
+    renderKPIs();
+    renderSummaryTable();
+    renderCompanySections();
+    renderGrandTotal();
+  };
+}
+
+function getFilteredCompanies() {
+  if (!GLOBAL) return [];
+  const filter = document.getElementById("companyFilter").value;
+  if (filter === "all") return GLOBAL.companies;
+  return GLOBAL.companies.filter(c => c.name === filter);
+}
+
+function renderKPIs() {
+  const companies = getFilteredCompanies();
+  const gt = companies.reduce((acc, c) => {
+    acc.customers += c.totalCustomers;
+    acc.collected += c.totalCollected;
+    acc.outsourced += c.totalOutsourced;
+    acc.remaining += c.totalRemaining;
+    acc.collectedToday += c.collectedToday;
+    acc.attic += c.atticEarning;
+    return acc;
+  }, { customers: 0, collected: 0, outsourced: 0, remaining: 0, collectedToday: 0, attic: 0 });
+
+  const rate = Number(document.getElementById("atticRate").value) || 5;
+  const atticTotal = Math.round((gt.collected * rate) / 100);
+
+  document.getElementById("kpiGrid").innerHTML = `
+    <div class="kpi-card kpi-blue"><div class="kpi-title">Total Customers</div><div class="kpi-value">${gt.customers.toLocaleString()}</div></div>
+    <div class="kpi-card kpi-green"><div class="kpi-title">Collected Amount</div><div class="kpi-value">${gt.collected.toLocaleString()}</div></div>
+    <div class="kpi-card kpi-orange"><div class="kpi-title">Outsourced Amount</div><div class="kpi-value">${gt.outsourced.toLocaleString()}</div></div>
+    <div class="kpi-card kpi-red"><div class="kpi-title">Remaining Due</div><div class="kpi-value">${gt.remaining.toLocaleString()}</div></div>
+    <div class="kpi-card kpi-purple"><div class="kpi-title">Attic Earnings</div><div class="kpi-value">${atticTotal.toLocaleString()}</div></div>
+  `;
+}
+
+function renderSummaryTable() {
+  const companies = getFilteredCompanies();
+  const tb = document.getElementById("summaryTable");
+  if (!companies.length) {
+    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7280;padding:30px;">No data.</td></tr>';
+    return;
+  }
+  tb.innerHTML = companies.map(c => `
+    <tr>
+      <td>${esc(c.name)}</td>
+      <td>${c.totalCustomers}</td>
+      <td>${c.dailyRepaymentRate}%</td>
+      <td>${c.totalRemaining.toLocaleString()}</td>
+      <td>${c.totalCollected.toLocaleString()}</td>
+      <td>${c.totalOutsourced.toLocaleString()}</td>
+      <td style="color:#22c55e;font-weight:700;">${c.atticEarning.toLocaleString()}</td>
+    </tr>
+  `).join("");
+}
+
+function renderCompanySections() {
+  const companies = getFilteredCompanies();
+  const container = document.getElementById("companySections");
+  container.innerHTML = "";
+
+  companies.forEach((c, idx) => {
+    const div = document.createElement("div");
+    div.className = "company-section";
+    div.innerHTML = `
+      <h2>${esc(c.name)}</h2>
+      <div class="stats-grid">
+        <div class="stat-box"><span>Customers</span><strong>${c.totalCustomers}</strong></div>
+        <div class="stat-box"><span>Daily Repay %</span><strong>${c.dailyRepaymentRate}%</strong></div>
+        <div class="stat-box"><span>Remaining Due</span><strong>${c.totalRemaining.toLocaleString()}</strong></div>
+        <div class="stat-box"><span>Collected</span><strong>${c.totalCollected.toLocaleString()}</strong></div>
+        <div class="stat-box"><span>Outsourced</span><strong>${c.totalOutsourced.toLocaleString()}</strong></div>
+        <div class="stat-box"><span>Attic Earning</span><strong>${c.atticEarning.toLocaleString()}</strong></div>
+      </div>
+      <div style="margin-top:20px;">
+        <div class="panel-title" style="margin-bottom:12px;">Agent Performance</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Agent</th><th>Loan Amount</th><th>Total Paid</th><th>Rate %</th></tr>
+            </thead>
+            <tbody id="agentTable-${idx}"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="pageInfo-${idx}"></span>
+          <div>
+            <button id="prev-${idx}">‹ Prev</button>
+            <button id="next-${idx}">Next ›</button>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+    initAgentTable(idx, c.agents || []);
+  });
+}
+
+function initAgentTable(idx, agents) {
+  const ROWS = 10;
+  const totalPages = Math.max(1, Math.ceil(agents.length / ROWS));
+  let currentPage = 1;
+
+  const tbody = document.getElementById(`agentTable-${idx}`);
+  const info = document.getElementById(`pageInfo-${idx}`);
+  const prev = document.getElementById(`prev-${idx}`);
+  const next = document.getElementById(`next-${idx}`);
+
+  function render() {
+    const start = (currentPage - 1) * ROWS;
+    const end = start + ROWS;
+    const slice = agents.slice(start, end);
+
+    tbody.innerHTML = slice.length ? slice.map(a => `
+      <tr>
+        <td>${esc(a.name)}</td>
+        <td>${a.loanAmount.toLocaleString()}</td>
+        <td>${a.totalPaid.toLocaleString()}</td>
+        <td>${a.rate.toFixed(1)}%</td>
+      </tr>
+    `).join("") : '<tr><td colspan="4" style="text-align:center;color:#6b7280;padding:20px;">No agents.</td></tr>';
+
+    info.textContent = agents.length
+      ? `Showing ${start + 1}–${Math.min(end, agents.length)} of ${agents.length} agents · Page ${currentPage} of ${totalPages}`
+      : "No agents";
+
+    prev.disabled = currentPage === 1;
+    next.disabled = currentPage === totalPages;
+  }
+
+  prev.onclick = () => { if (currentPage > 1) { currentPage--; render(); } };
+  next.onclick = () => { if (currentPage < totalPages) { currentPage++; render(); } };
+  render();
+}
+
+function renderGrandTotal() {
+  const companies = getFilteredCompanies();
+  const gt = companies.reduce((sum, c) => sum + c.totalCollected, 0);
+  const rate = Number(document.getElementById("atticRate").value) || 5;
+  const totalAttic = Math.round((gt * rate) / 100);
+
+  document.getElementById("grandAtticEarning").innerHTML =
+    `<span>KES</span>${totalAttic.toLocaleString()}`;
+  document.getElementById("grandTotalNote").textContent =
+    `Based on ${rate}% commission rate on ${gt.toLocaleString()} collected`;
+}
+
+async function saveRate() {
+  const rate = Number(document.getElementById("atticRate").value);
+  if (isNaN(rate) || rate < 0 || rate > 100) {
+    alert("Rate must be between 0 and 100");
+    return;
+  }
+  if (!confirm(`Save new commission rate of ${rate}%?`)) return;
+
+  const res = await api("saveAtticRate", { rate: rate });
+  if (res.success) {
+    alert("Rate saved! Refreshing dashboard...");
+    loadDashboard();
+  } else {
+    alert("Failed: " + res.message);
+  }
+}
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+function showError(m) {
+  const e = document.getElementById("errorBox");
+  e.textContent = m; e.style.display = "block";
+}
+function hideError() {
+  document.getElementById("errorBox").style.display = "none";
+}
+function showLoader(s) {
+  document.getElementById("loader").classList.toggle("show", s);
+}
+
+loadDashboard();
+setInterval(loadDashboard, 60000);
+</script>
+</body>
+</html>
