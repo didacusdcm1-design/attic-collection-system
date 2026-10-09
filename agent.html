@@ -226,14 +226,14 @@
     <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
   </div>
 
-<div class="stats">
-  <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Total</div></div>
-  <div class="stat"><div class="num" id="statDaily">0%</div><div class="lbl">Daily Perf</div></div>
-  <div class="stat"><div class="num" id="statMTD">0</div><div class="lbl">MTD (KES)</div></div>
-</div>
+  <div class="stats">
+    <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Total</div></div>
+    <div class="stat"><div class="num" id="statDaily">0%</div><div class="lbl">Daily Perf</div></div>
+    <div class="stat"><div class="num" id="statMTD">0</div><div class="lbl">MTD (KES)</div></div>
+  </div>
 
   <div class="search-bar">
-    <input id="searchInput" placeholder="🔍 Search by name, phone or Loan ID..." oninput="renderList()">
+    <input id="searchInput" placeholder="🔍 Search by name, phone or Loan ID...">
   </div>
 
   <div class="list" id="customerList">
@@ -296,10 +296,9 @@ let CUSTOMERS = [];
 let selectedCustomer = null;
 
 // ============================================================
-// API CALL
+// API CALL (Loader removed - now handled by calling functions)
 // ============================================================
 async function api(action, payload = {}) {
-  showLoader(true);
   try {
     const params = new URLSearchParams();
     params.append("action", action);
@@ -314,8 +313,6 @@ async function api(action, payload = {}) {
     return JSON.parse(text);
   } catch (err) {
     return { success: false, message: err.message };
-  } finally {
-    showLoader(false);
   }
 }
 
@@ -341,7 +338,10 @@ async function doLogin() {
     return;
   }
 
+  showLoader(true);
   const res = await api("login", { employeeId: empId, password: pwd });
+  showLoader(false);
+
   if (!res.success) {
     err.textContent = res.message || "Login failed";
     err.classList.add("show");
@@ -374,29 +374,40 @@ function doLogout() {
 }
 
 // ============================================================
-// LOAD CUSTOMERS
+// LOAD CUSTOMERS (OPTIMIZED: Parallel Fetching)
 // ============================================================
 async function loadCustomers() {
-  const res = await api("getAgentCustomers", { agentId: USER.employeeId });
-  if (!res.success) {
-    toast(res.message || "Failed to load customers", true);
-    return;
-  }
-  CUSTOMERS = res.customers || [];
-await updateStats();
-renderList();
-}
+  showLoader(true);
+  
+  try {
+    // Fire both requests at the exact same time
+    const [custRes, perfRes] = await Promise.all([
+      api("getAgentCustomers", { agentId: USER.employeeId }),
+      api("getAgentPerformance", { agentId: USER.employeeId })
+    ]);
 
-async function updateStats() {
-  document.getElementById("statTotal").textContent = CUSTOMERS.length;
+    if (!custRes.success) {
+      toast(custRes.message || "Failed to load customers", true);
+      return;
+    }
 
-  const perf = await api("getAgentPerformance", { agentId: USER.employeeId });
-  if (perf.success) {
-    document.getElementById("statDaily").textContent = perf.dailyPercent + "%";
-    document.getElementById("statMTD").textContent = (perf.mtdCollected || 0).toLocaleString();
-  } else {
-    document.getElementById("statDaily").textContent = "0%";
-    document.getElementById("statMTD").textContent = "0";
+    CUSTOMERS = custRes.customers || [];
+    
+    // Update Stats
+    document.getElementById("statTotal").textContent = CUSTOMERS.length;
+    if (perfRes.success) {
+      document.getElementById("statDaily").textContent = (perfRes.dailyPercent || 0) + "%";
+      document.getElementById("statMTD").textContent = (perfRes.mtdCollected || 0).toLocaleString();
+    } else {
+      document.getElementById("statDaily").textContent = "0%";
+      document.getElementById("statMTD").textContent = "0";
+    }
+
+    renderList();
+  } catch (err) {
+    toast("Network error. Please refresh.", true);
+  } finally {
+    showLoader(false);
   }
 }
 
@@ -413,7 +424,7 @@ function renderList() {
 
   const el = document.getElementById("customerList");
   if (!filtered.length) {
-    el.innerHTML = `<div class="empty"><div class="big">📭</div>No customers assigned yet.</div>`;
+    el.innerHTML = `<div class="empty"><div class="big">📭</div>No customers found.</div>`;
     return;
   }
 
@@ -434,6 +445,15 @@ function renderList() {
     `;
   }).join("");
 }
+
+// ============================================================
+// SEARCH DEBOUNCE (Prevents lag while typing)
+// ============================================================
+let searchTimeout;
+document.getElementById("searchInput").addEventListener("input", () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(renderList, 250); // Waits 250ms after typing stops
+});
 
 // ============================================================
 // OPEN MODAL
@@ -485,12 +505,14 @@ async function saveCustomer() {
     return;
   }
 
+  showLoader(true);
   const res = await api("updateCustomer", {
     id: selectedCustomer.id,
     status: status || "",
     amountPaid: amount || "",
     remark: remark || ""
   });
+  showLoader(false);
 
   toast(res.message, !res.success);
   if (res.success) {
