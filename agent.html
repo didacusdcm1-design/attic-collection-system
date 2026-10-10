@@ -77,8 +77,11 @@
   /* ================= SEARCH ================= */
   .search-bar {
     padding: 0 16px 12px;
+    display: flex;
+    gap: 8px;
   }
   .search-bar input {
+    flex: 1;
     margin-bottom: 0;
     padding: 12px 14px;
     background: #16181d;
@@ -86,6 +89,20 @@
     border-radius: 10px;
     font-size: 14px;
   }
+  .search-btn {
+    padding: 12px 20px;
+    background: #22c55e;
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .search-btn:active { opacity: 0.85; }
 
   /* ================= CUSTOMER CARDS ================= */
   .list { padding: 0 16px 100px; }
@@ -110,6 +127,7 @@
   }
   .badge.processing { background: #1a2e3a; color: #3b82f6; }
   .badge.assigned { background: #1a3a2e; color: #22c55e; }
+  .badge.handled { background: #3a2e1a; color: #f59e0b; }
   .badge.paid { background: #2a1a3a; color: #a855f7; }
   .badge.unassigned { background: #3a2e1a; color: #f59e0b; }
   .cust-detail {
@@ -233,7 +251,8 @@
   </div>
 
   <div class="search-bar">
-    <input id="searchInput" placeholder="🔍 Search by name, phone or Loan ID...">
+    <input id="searchInput" placeholder="🔍 Name, phone, or Loan ID..." onkeydown="if(event.key==='Enter') doSearch()">
+    <button class="search-btn" onclick="doSearch()">Search</button>
   </div>
 
   <div class="list" id="customerList">
@@ -296,7 +315,7 @@ let CUSTOMERS = [];
 let selectedCustomer = null;
 
 // ============================================================
-// API CALL (Loader removed - now handled by calling functions)
+// API CALL
 // ============================================================
 async function api(action, payload = {}) {
   try {
@@ -374,13 +393,12 @@ function doLogout() {
 }
 
 // ============================================================
-// LOAD CUSTOMERS (OPTIMIZED: Parallel Fetching)
+// LOAD CUSTOMERS (Parallel Fetch)
 // ============================================================
 async function loadCustomers() {
   showLoader(true);
-  
+
   try {
-    // Fire both requests at the exact same time
     const [custRes, perfRes] = await Promise.all([
       api("getAgentCustomers", { agentId: USER.employeeId }),
       api("getAgentPerformance", { agentId: USER.employeeId })
@@ -392,8 +410,7 @@ async function loadCustomers() {
     }
 
     CUSTOMERS = custRes.customers || [];
-    
-    // Update Stats
+
     document.getElementById("statTotal").textContent = CUSTOMERS.length;
     if (perfRes.success) {
       document.getElementById("statDaily").textContent = (perfRes.dailyPercent || 0) + "%";
@@ -412,15 +429,30 @@ async function loadCustomers() {
 }
 
 // ============================================================
+// SEARCH
+// ============================================================
+function doSearch() {
+  renderList();
+}
+
+document.getElementById("searchInput").addEventListener("input", () => {
+  clearTimeout(window.__searchTimer);
+  window.__searchTimer = setTimeout(renderList, 300);
+});
+
+// ============================================================
 // RENDER LIST
 // ============================================================
 function renderList() {
   const q = (document.getElementById("searchInput").value || "").toLowerCase().trim();
-  const filtered = CUSTOMERS.filter(c => !q ||
-    (c.clientName || "").toLowerCase().includes(q) ||
-    (c.mobile || "").includes(q) ||
-    (c.loanId || "").toLowerCase().includes(q)
-  );
+  const filtered = CUSTOMERS.filter(c => {
+    if (!q) return true;
+    return (
+      (c.clientName || "").toLowerCase().includes(q) ||
+      (c.mobile || "").toLowerCase().includes(q) ||
+      (c.loanId || "").toLowerCase().includes(q)
+    );
+  });
 
   const el = document.getElementById("customerList");
   if (!filtered.length) {
@@ -429,13 +461,18 @@ function renderList() {
   }
 
   el.innerHTML = filtered.map(c => {
-    const status = (c.status || "processing").toLowerCase().replace(/\s+/g, "");
+    // Decide badge: Handled if handled today, otherwise Assigned
+    const baseStatus = (c.status || "Assigned");
+    const handledToday = c.handledToday === true;
+    const badgeClass = handledToday ? "handled" : 
+                       (baseStatus.toLowerCase().replace(/\s+/g, "") || "assigned");
+    const badgeText = handledToday ? "HANDLED" : baseStatus.toUpperCase();
     const overdue = Number(c.overdueDays) > 0;
     return `
       <div class="customer" onclick="openCustomer('${c.id}')">
         <div class="cust-header">
           <div class="cust-name">${esc(c.clientName)}</div>
-          <div class="badge ${status}">${esc(c.status || "Processing").toUpperCase()}</div>
+          <div class="badge ${badgeClass}">${esc(badgeText)}</div>
         </div>
         <div class="cust-detail"><span>📱 Mobile</span><span class="val">${esc(c.mobile)}</span></div>
         <div class="cust-detail"><span>💰 Remaining</span><span class="val gold">${esc(c.remainingAmount)}</span></div>
@@ -445,15 +482,6 @@ function renderList() {
     `;
   }).join("");
 }
-
-// ============================================================
-// SEARCH DEBOUNCE (Prevents lag while typing)
-// ============================================================
-let searchTimeout;
-document.getElementById("searchInput").addEventListener("input", () => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(renderList, 250); // Waits 250ms after typing stops
-});
 
 // ============================================================
 // OPEN MODAL
@@ -466,6 +494,11 @@ function openCustomer(id) {
   document.getElementById("modalName").textContent = c.clientName;
   document.getElementById("modalLoan").textContent = "Loan ID: " + c.loanId;
 
+  // "Last Remark" now shows status if remark is empty
+  const lastRemarkText = c.remark && c.remark.trim() !== "" 
+    ? c.remark 
+    : (c.status || "—");
+
   document.getElementById("modalDetails").innerHTML = `
     <div class="detail-row"><span class="l">Category</span><span class="v">${esc(c.category)}</span></div>
     <div class="detail-row"><span class="l">Business</span><span class="v">${esc(c.businessName)}</span></div>
@@ -475,7 +508,7 @@ function openCustomer(id) {
     <div class="detail-row"><span class="l">Paid Amount</span><span class="v gold">${esc(c.paidAmount || 0)}</span></div>
     <div class="detail-row"><span class="l">Overdue</span><span class="v ${Number(c.overdueDays) > 0 ? 'red' : ''}">${esc(c.overdueDays)} days</span></div>
     <div class="detail-row"><span class="l">Due Date</span><span class="v">${esc(c.dueDate)}</span></div>
-    ${c.remark ? `<div class="detail-row"><span class="l">Last Remark</span><span class="v">${esc(c.remark)}</span></div>` : ""}
+    <div class="detail-row"><span class="l">Last Remark</span><span class="v">${esc(lastRemarkText)}</span></div>
   `;
 
   document.getElementById("statusSelect").value = "";
@@ -508,6 +541,7 @@ async function saveCustomer() {
   showLoader(true);
   const res = await api("updateCustomer", {
     id: selectedCustomer.id,
+    agentId: USER.employeeId,
     status: status || "",
     amountPaid: amount || "",
     remark: remark || ""
