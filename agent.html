@@ -409,7 +409,7 @@ async function loadCustomers() {
       return;
     }
 
-    CUSTOMERS = custRes.customers || [];
+    CUSTOMERS = (custRes.customers || []).filter(c => Number(c.remainingAmount || 0) > 0);
 
     document.getElementById("statTotal").textContent = CUSTOMERS.length;
     if (perfRes.success) {
