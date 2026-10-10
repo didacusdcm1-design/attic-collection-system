@@ -138,6 +138,19 @@
   .cust-detail .val.gold { color: #22c55e; }
   .cust-detail .val.red { color: #dc2626; }
 
+  /* Called-today pill */
+  .called-pill {
+    display: inline-block;
+    background: #1a2e3a;
+    color: #3b82f6;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-top: 6px;
+  }
+
   /* ================= MODAL ================= */
   .modal {
     display: none; position: fixed; inset: 0;
@@ -171,6 +184,7 @@
   .detail-row .v { color: #fff; font-weight: 600; text-align: right; max-width: 60%; }
   .detail-row .v.gold { color: #22c55e; }
   .detail-row .v.red { color: #dc2626; }
+  .detail-row .v.blue { color: #3b82f6; }
   .form-group { margin-top: 16px; }
   .form-group label { font-size: 10px; }
   select, textarea {
@@ -446,13 +460,13 @@ document.getElementById("searchInput").addEventListener("input", () => {
 function renderList() {
   const q = (document.getElementById("searchInput").value || "").toLowerCase().trim();
   const filtered = CUSTOMERS.filter(c => {
-  if (!q) return true;
-  return (
-    String(c.clientName || "").toLowerCase().includes(q) ||
-    String(c.mobile || "").toLowerCase().includes(q) ||
-    String(c.loanId || "").toLowerCase().includes(q)
-  );
-});
+    if (!q) return true;
+    return (
+      String(c.clientName || "").toLowerCase().includes(q) ||
+      String(c.mobile || "").toLowerCase().includes(q) ||
+      String(c.loanId || "").toLowerCase().includes(q)
+    );
+  });
 
   const el = document.getElementById("customerList");
   if (!filtered.length) {
@@ -461,13 +475,19 @@ function renderList() {
   }
 
   el.innerHTML = filtered.map(c => {
-    // Decide badge: Handled if handled today, otherwise Assigned
     const baseStatus = (c.status || "Assigned");
     const handledToday = c.handledToday === true;
-    const badgeClass = handledToday ? "handled" : 
+    const badgeClass = handledToday ? "handled" :
                        (baseStatus.toLowerCase().replace(/\s+/g, "") || "assigned");
     const badgeText = handledToday ? "HANDLED" : baseStatus.toUpperCase();
     const overdue = Number(c.overdueDays) > 0;
+
+    // Daily calls pill — show only if handled today
+    const dailyCalls = Number(c.dailyCalls || 0);
+    const callsPill = (handledToday && dailyCalls > 0)
+      ? `<div class="called-pill">📞 Called ${dailyCalls}× today</div>`
+      : "";
+
     return `
       <div class="customer" onclick="openCustomer('${c.id}')">
         <div class="cust-header">
@@ -478,6 +498,7 @@ function renderList() {
         <div class="cust-detail"><span>💰 Remaining</span><span class="val gold">${esc(c.remainingAmount)}</span></div>
         ${overdue ? `<div class="cust-detail"><span>⚠️ Overdue</span><span class="val red">${esc(c.overdueDays)} days</span></div>` : ""}
         <div class="cust-detail"><span>🆔 Loan ID</span><span class="val">${esc(c.loanId)}</span></div>
+        ${callsPill}
       </div>
     `;
   }).join("");
@@ -494,10 +515,11 @@ function openCustomer(id) {
   document.getElementById("modalName").textContent = c.clientName;
   document.getElementById("modalLoan").textContent = "Loan ID: " + c.loanId;
 
-  // "Last Remark" now shows status if remark is empty
-  const lastRemarkText = c.remark && c.remark.trim() !== "" 
-    ? c.remark 
+  const lastRemarkText = c.remark && c.remark.trim() !== ""
+    ? c.remark
     : (c.status || "—");
+
+  const dailyCalls = Number(c.dailyCalls || 0);
 
   document.getElementById("modalDetails").innerHTML = `
     <div class="detail-row"><span class="l">Category</span><span class="v">${esc(c.category)}</span></div>
@@ -508,6 +530,7 @@ function openCustomer(id) {
     <div class="detail-row"><span class="l">Paid Amount</span><span class="v gold">${esc(c.paidAmount || 0)}</span></div>
     <div class="detail-row"><span class="l">Overdue</span><span class="v ${Number(c.overdueDays) > 0 ? 'red' : ''}">${esc(c.overdueDays)} days</span></div>
     <div class="detail-row"><span class="l">Due Date</span><span class="v">${esc(c.dueDate)}</span></div>
+    <div class="detail-row"><span class="l">Daily Calls Today</span><span class="v blue">${dailyCalls}×</span></div>
     <div class="detail-row"><span class="l">Last Remark</span><span class="v">${esc(lastRemarkText)}</span></div>
   `;
 
