@@ -446,13 +446,13 @@ document.getElementById("searchInput").addEventListener("input", () => {
 function renderList() {
   const q = (document.getElementById("searchInput").value || "").toLowerCase().trim();
   const filtered = CUSTOMERS.filter(c => {
-    if (!q) return true;
-    return (
-      (c.clientName || "").toLowerCase().includes(q) ||
-      (c.mobile || "").toLowerCase().includes(q) ||
-      (c.loanId || "").toLowerCase().includes(q)
-    );
-  });
+  if (!q) return true;
+  return (
+    String(c.clientName || "").toLowerCase().includes(q) ||
+    String(c.mobile || "").toLowerCase().includes(q) ||
+    String(c.loanId || "").toLowerCase().includes(q)
+  );
+});
 
   const el = document.getElementById("customerList");
   if (!filtered.length) {
