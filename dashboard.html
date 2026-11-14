@@ -56,6 +56,8 @@
   .btn-primary:hover { background: #16a34a; }
   .btn-warning { background: #f59e0b; color: #000; }
   .btn-warning:hover { background: #d97706; }
+  .btn-secondary { background: #23262d; color: #e5e7eb; border: 1px solid #2e333d; }
+  .btn-secondary:hover { background: #2e333d; }
 
   /* ERROR */
   .error-box {
@@ -384,8 +386,7 @@
     <div>
       <label>Select Admin to Edit</label>
       <select id="editAdminSelect">
-        <option value="">-- Select --</option>
-        <option value="ADMIN001">Admin One (ADMIN001)</option>
+        <option value="">-- Loading Admins... --</option>
       </select>
       <label>New Password</label>
       <input type="password" id="editAdminPwd" placeholder="••••••••">
@@ -404,38 +405,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwvDjV7tCyZQapgRTNxkKLR
 let GLOBAL = null;
 
 // ============================================================
-// ADMIN MODAL LOGIC
-// ============================================================
-function openAdminModal() {
-  document.getElementById("adminModal").classList.add("active");
-}
-function closeAdminModal() {
-  document.getElementById("adminModal").classList.remove("active");
-}
-function createAdmin() {
-  const name = document.getElementById("newAdminName").value;
-  const id = document.getElementById("newAdminId").value;
-  const pwd = document.getElementById("newAdminPwd").value;
-  
-  if (!name || !id || !pwd) { alert("Please fill all fields"); return; }
-  
-  // TODO: Connect to API here
-  alert("Admin created successfully (Mock)");
-  closeAdminModal();
-}
-function updatePassword() {
-  const id = document.getElementById("editAdminSelect").value;
-  const pwd = document.getElementById("editAdminPwd").value;
-  
-  if (!id || !pwd) { alert("Please select admin and enter password"); return; }
-  
-  // TODO: Connect to API here
-  alert("Password updated successfully (Mock)");
-  closeAdminModal();
-}
-
-// ============================================================
-// DASHBOARD LOGIC
+// API HELPER
 // ============================================================
 async function api(action, payload = {}) {
   showLoader(true);
@@ -457,6 +427,73 @@ async function api(action, payload = {}) {
   }
 }
 
+// ============================================================
+// ADMIN MODAL LOGIC (Connected to Backend)
+// ============================================================
+async function openAdminModal() {
+  document.getElementById("adminModal").classList.add("active");
+  
+  // Fetch the list of admins from the backend
+  const res = await api("adminGetAdmins");
+  const sel = document.getElementById("editAdminSelect");
+  
+  if (res.success) {
+    sel.innerHTML = '<option value="">-- Select Admin --</option>' + 
+      res.admins.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
+  } else {
+    sel.innerHTML = '<option value="">Failed to load admins</option>';
+  }
+}
+
+function closeAdminModal() {
+  document.getElementById("adminModal").classList.remove("active");
+}
+
+async function createAdmin() {
+  const name = document.getElementById("newAdminName").value;
+  const id = document.getElementById("newAdminId").value;
+  const pwd = document.getElementById("newAdminPwd").value;
+
+  if (!name || !id || !pwd) {
+    alert("Please fill all fields");
+    return;
+  }
+  
+  const res = await api("createAdmin", { name: name, id: id, pwd: pwd });
+  
+  if (res.success) {
+    alert("Admin created successfully!");
+    document.getElementById("newAdminName").value = "";
+    document.getElementById("newAdminId").value = "";
+    document.getElementById("newAdminPwd").value = "";
+    openAdminModal(); // Refresh dropdown
+  } else {
+    alert(res.message || "Failed to create admin");
+  }
+}
+
+async function updatePassword() {
+  const id = document.getElementById("editAdminSelect").value;
+  const pwd = document.getElementById("editAdminPwd").value;
+
+  if (!id || !pwd) {
+    alert("Please select an admin and enter a new password");
+    return;
+  }
+
+  const res = await api("updateAdminPassword", { id: id, newPwd: pwd });
+
+  if (res.success) {
+    alert("Password updated successfully!");
+    document.getElementById("editAdminPwd").value = "";
+  } else {
+    alert(res.message || "Failed to update password");
+  }
+}
+
+// ============================================================
+// DASHBOARD LOGIC
+// ============================================================
 async function loadDashboard() {
   hideError();
   const res = await api("getAnalytics");
