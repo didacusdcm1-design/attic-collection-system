@@ -9,8 +9,32 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #0f1115; color: #e5e7eb; min-height: 100vh;
+    display: flex;
   }
-  .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+  /* ================= SIDEBAR ================= */
+  .sidebar {
+    width: 240px; background: #16181d; border-right: 1px solid #23262d;
+    display: flex; flex-direction: column; padding: 20px 0;
+    height: 100vh; position: fixed; left: 0; top: 0; z-index: 100;
+  }
+  .side-brand { padding: 0 20px 20px; border-bottom: 1px solid #23262d; margin-bottom: 20px; }
+  .side-brand h1 { font-size: 18px; font-weight: 800; color: #22c55e; letter-spacing: 1px; }
+  .side-brand p { font-size: 11px; color: #6b7280; letter-spacing: 2px; margin-top: 4px; }
+  .user-info {
+    padding: 12px 20px; background: #1c1f26; border-radius: 10px; margin: 0 12px 20px;
+  }
+  .user-info .name { font-size: 13px; font-weight: 600; }
+  .user-info .role { font-size: 11px; color: #22c55e; margin-top: 2px; }
+  .nav-item {
+    padding: 12px 20px; color: #9ca3af; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nav-item:hover { background: #1c1f26; color: #fff; }
+  .nav-item.active { background: #1c1f26; color: #22c55e; border-left: 3px solid #22c55e; }
+
+  /* ================= MAIN CONTENT ================= */
+  .app { margin-left: 240px; flex: 1; padding: 20px; width: calc(100% - 240px); }
 
   /* HEADER */
   .dash-header {
@@ -145,6 +169,45 @@
   .subtotal-value span { color: #22c55e; font-size: 22px; margin-right: 8px; }
   .subtotal-note { color: #6b7280; font-size: 11px; margin-top: 10px; }
 
+  /* ================= NEW: PAYMENT COMPARISON CHAT ================= */
+  .chat-container {
+    background: #16181d; border: 1px solid #23262d; border-radius: 12px;
+    padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px;
+  }
+  .chat-message { display: flex; align-items: flex-start; gap: 12px; }
+  .chat-avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: #22c55e; color: #000;
+    display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 14px;
+    flex-shrink: 0;
+  }
+  .chat-bubble {
+    background: #1c1f26; border: 1px solid #2e333d; border-radius: 0 12px 12px 12px;
+    padding: 12px 16px; flex: 1;
+  }
+  .chat-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
+  .chat-company { font-weight: 700; color: #fff; }
+  .chat-amount { font-weight: 800; color: #22c55e; }
+  .chat-bar-bg { width: 100%; height: 6px; background: #0f1115; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .chat-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; }
+
+  /* MODAL (For Admin Management) */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    display: none; justify-content: center; align-items: center; z-index: 500;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-content {
+    background: #16181d; border: 1px solid #23262d; border-radius: 12px;
+    width: 100%; max-width: 500px; padding: 24px;
+  }
+  .modal-content h2 { color: #22c55e; margin-bottom: 20px; font-size: 18px; }
+  .modal-content label { display: block; font-size: 11px; color: #9ca3af; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; margin-top: 12px;}
+  .modal-content input, .modal-content select {
+    width: 100%; padding: 12px; background: #0f1115; border: 1px solid #23262d;
+    border-radius: 8px; color: #fff; font-size: 14px; outline: none; margin-bottom: 10px;
+  }
+  .modal-content input:focus, .modal-content select:focus { border-color: #22c55e; }
+
   /* LOADER */
   .loader {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -159,6 +222,9 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   @media (max-width: 768px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: relative; }
+    .app { margin-left: 0; width: 100%; }
     .dash-header { flex-direction: column; align-items: flex-start; }
     .subtotal-value { font-size: 28px; }
     .subtotal-value span { font-size: 16px; }
@@ -168,6 +234,29 @@
 </head>
 <body>
 
+<!-- ================= SIDEBAR ================= -->
+<div class="sidebar">
+  <div class="side-brand">
+    <h1>ATTIC COLLECTION</h1>
+    <p>ADMIN SYSTEM</p>
+  </div>
+  <div class="user-info">
+    <div class="name">Admin User</div>
+    <div class="role">Administrator</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='index.html'"><span>📊</span> Dashboard</div>
+  <div class="nav-item" onclick="window.location.href='index.html'"><span>📤</span> Upload Customers</div>
+  <div class="nav-item" onclick="window.location.href='index.html'"><span>👥</span> Assign to Agents</div>
+  <div class="nav-item" onclick="window.location.href='index.html'"><span>📋</span> All Customers</div>
+  <div class="nav-item active"><span>📈</span> Analytics Dashboard</div>
+  
+  <!-- NEW TAB -->
+  <div class="nav-item" onclick="openAdminModal()"><span>🛡️</span> Admin Management</div>
+  
+  <div class="nav-item" onclick="window.location.href='index.html'" style="margin-top:auto; color:#dc2626;"><span>🚪</span> Logout</div>
+</div>
+
+<!-- ================= MAIN CONTENT ================= -->
 <div class="app">
 
   <!-- HEADER -->
@@ -189,6 +278,47 @@
 
   <!-- KPI CARDS -->
   <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- NEW: PAYMENT COMPARISON CHAT -->
+  <div class="chat-container">
+    <div class="panel-title" style="margin-bottom: 0; border:none; padding:0;">💬 Live Payment Comparison (Outsourcing Companies)</div>
+    
+    <div class="chat-message">
+      <div class="chat-avatar">A</div>
+      <div class="chat-bubble">
+        <div class="chat-header">
+          <span class="chat-company">Alpha Collections</span>
+          <span class="chat-amount">KES 145,000</span>
+        </div>
+        <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
+        <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 85%;"></div></div>
+      </div>
+    </div>
+
+    <div class="chat-message">
+      <div class="chat-avatar" style="background:#3b82f6;">B</div>
+      <div class="chat-bubble">
+        <div class="chat-header">
+          <span class="chat-company">Beta Recoveries</span>
+          <span class="chat-amount">KES 98,500</span>
+        </div>
+        <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
+        <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 60%; background: #3b82f6;"></div></div>
+      </div>
+    </div>
+
+    <div class="chat-message">
+      <div class="chat-avatar" style="background:#a855f7;">G</div>
+      <div class="chat-bubble">
+        <div class="chat-header">
+          <span class="chat-company">Gamma Debt Services</span>
+          <span class="chat-amount">KES 62,000</span>
+        </div>
+        <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
+        <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 35%; background: #a855f7;"></div></div>
+      </div>
+    </div>
+  </div>
 
   <!-- RATE CONTROL -->
   <div class="rate-panel">
@@ -234,6 +364,38 @@
 
 </div>
 
+<!-- NEW: ADMIN MANAGEMENT MODAL -->
+<div class="modal-overlay" id="adminModal">
+  <div class="modal-content">
+    <h2>🛡️ Admin Management</h2>
+    
+    <div style="margin-bottom: 20px;">
+      <label>Create Admin Name</label>
+      <input type="text" id="newAdminName" placeholder="John Doe">
+      <label>Employee ID</label>
+      <input type="text" id="newAdminId" placeholder="ADMIN002">
+      <label>Password</label>
+      <input type="password" id="newAdminPwd" placeholder="••••••••">
+      <button class="btn btn-primary" onclick="createAdmin()" style="width:100%; margin-top:10px;">Create Account</button>
+    </div>
+
+    <hr style="border-color:#23262d; margin: 20px 0;">
+
+    <div>
+      <label>Select Admin to Edit</label>
+      <select id="editAdminSelect">
+        <option value="">-- Select --</option>
+        <option value="ADMIN001">Admin One (ADMIN001)</option>
+      </select>
+      <label>New Password</label>
+      <input type="password" id="editAdminPwd" placeholder="••••••••">
+      <button class="btn btn-primary" onclick="updatePassword()" style="width:100%; margin-top:10px;">Update Password</button>
+    </div>
+
+    <button class="btn btn-secondary" onclick="closeAdminModal()" style="width:100%; margin-top:20px;">Close</button>
+  </div>
+</div>
+
 <div class="loader" id="loader"><div class="spinner"></div></div>
 
 <script>
@@ -241,6 +403,40 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwvDjV7tCyZQapgRTNxkKLR
 
 let GLOBAL = null;
 
+// ============================================================
+// ADMIN MODAL LOGIC
+// ============================================================
+function openAdminModal() {
+  document.getElementById("adminModal").classList.add("active");
+}
+function closeAdminModal() {
+  document.getElementById("adminModal").classList.remove("active");
+}
+function createAdmin() {
+  const name = document.getElementById("newAdminName").value;
+  const id = document.getElementById("newAdminId").value;
+  const pwd = document.getElementById("newAdminPwd").value;
+  
+  if (!name || !id || !pwd) { alert("Please fill all fields"); return; }
+  
+  // TODO: Connect to API here
+  alert("Admin created successfully (Mock)");
+  closeAdminModal();
+}
+function updatePassword() {
+  const id = document.getElementById("editAdminSelect").value;
+  const pwd = document.getElementById("editAdminPwd").value;
+  
+  if (!id || !pwd) { alert("Please select admin and enter password"); return; }
+  
+  // TODO: Connect to API here
+  alert("Password updated successfully (Mock)");
+  closeAdminModal();
+}
+
+// ============================================================
+// DASHBOARD LOGIC
+// ============================================================
 async function api(action, payload = {}) {
   showLoader(true);
   try {
