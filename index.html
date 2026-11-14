@@ -21,11 +21,11 @@
   .brand h1 { color: #22c55e; font-size: 22px; letter-spacing: 2px; font-weight: 800; }
   .brand p { color: #6b7280; font-size: 12px; letter-spacing: 3px; margin-top: 6px; }
   label { display: block; font-size: 11px; color: #9ca3af; letter-spacing: 2px; margin-bottom: 6px; text-transform: uppercase; }
-  input {
+  input, select {
     width: 100%; padding: 14px; background: #16181d; border: 1px solid #23262d;
     border-radius: 10px; color: #fff; font-size: 15px; margin-bottom: 16px; outline: none;
   }
-  input:focus { border-color: #22c55e; }
+  input:focus, select:focus { border-color: #22c55e; }
   .btn {
     padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
     cursor: pointer; border: none; letter-spacing: 0.5px;
@@ -49,7 +49,7 @@
   .sidebar {
     width: 240px; background: #16181d; border-right: 1px solid #23262d;
     display: flex; flex-direction: column; padding: 20px 0;
-    height: 100vh; position: fixed; left: 0; top: 0;
+    height: 100vh; position: fixed; left: 0; top: 0; z-index: 100;
   }
   .side-brand { padding: 0 20px 20px; border-bottom: 1px solid #23262d; margin-bottom: 20px; }
   .side-brand h1 { font-size: 18px; font-weight: 800; color: #22c55e; letter-spacing: 1px; }
@@ -89,6 +89,29 @@
   .stat-box .num { font-size: 26px; font-weight: 800; color: #22c55e; }
   .stat-box .lbl { font-size: 11px; color: #9ca3af; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
   .hidden { display: none !important; }
+
+  /* ================= NEW: PAYMENT COMPARISON CHAT ================= */
+  .chat-container {
+    background: #16181d; border: 1px solid #23262d; border-radius: 12px;
+    padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px;
+  }
+  .chat-message {
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .chat-avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: #22c55e; color: #000;
+    display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 14px;
+    flex-shrink: 0;
+  }
+  .chat-bubble {
+    background: #1c1f26; border: 1px solid #2e333d; border-radius: 0 12px 12px 12px;
+    padding: 12px 16px; flex: 1;
+  }
+  .chat-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
+  .chat-company { font-weight: 700; color: #fff; }
+  .chat-amount { font-weight: 800; color: #22c55e; }
+  .chat-bar-bg { width: 100%; height: 6px; background: #0f1115; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .chat-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; transition: width 1s ease-in-out; }
 
   /* ================= TOAST / LOADER ================= */
   #toast {
@@ -143,44 +166,122 @@
     <div class="nav-item" onclick="showPage('upload', this)"><span>📤</span> Upload Customers</div>
     <div class="nav-item" onclick="showPage('assign', this)"><span>👥</span> Assign to Agents</div>
     <div class="nav-item" onclick="showPage('customers', this)"><span>📋</span> All Customers</div>
-   <div class="nav-item" onclick="window.open('dashboard.html', '_blank')"><span>📈</span> Analytics Dashboard</div>
+    <div class="nav-item" onclick="window.open('dashboard.html', '_blank')"><span>📈</span> Analytics Dashboard</div>
+    
+    <!-- NEW ADMIN MANAGEMENT TAB -->
+    <div class="nav-item" onclick="showPage('admin', this)"><span>🛡️</span> Admin Management</div>
+    
     <div class="nav-item" onclick="doLogout()" style="margin-top:auto; color:#dc2626;"><span>🚪</span> Logout</div>
   </div>
 
   <div class="main">
     <!-- DASHBOARD -->
-<div id="page-dashboard">
-  <div class="page-title">Dashboard</div>
-  <div class="stats-row">
-    <div class="stat-box"><div class="num" id="statTotal">0</div><div class="lbl">Total Customers</div></div>
-    <div class="stat-box"><div class="num" id="statUnassigned">0</div><div class="lbl">Unassigned</div></div>
-    <div class="stat-box"><div class="num" id="statAssigned">0</div><div class="lbl">Assigned</div></div>
-    <div class="stat-box"><div class="num" id="statPaid">0</div><div class="lbl">Paid</div></div>
-  </div>
+    <div id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="num" id="statTotal">0</div><div class="lbl">Total Customers</div></div>
+        <div class="stat-box"><div class="num" id="statUnassigned">0</div><div class="lbl">Unassigned</div></div>
+        <div class="stat-box"><div class="num" id="statAssigned">0</div><div class="lbl">Assigned</div></div>
+        <div class="stat-box"><div class="num" id="statPaid">0</div><div class="lbl">Paid</div></div>
+      </div>
 
-  <!-- TOP AGENTS LEADERBOARD -->
-  <div class="card" style="margin-top:20px;">
-    <div class="card-title">🏆 Top 10 Performing Agents (MTD)</div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:70px;">Rank</th>
-            <th>Agent</th>
-            <th>Employee ID</th>
-            <th>Customers</th>
-            <th>Collected</th>
-            <th>Outsourced</th>
-            <th>Rate %</th>
-          </tr>
-        </thead>
-        <tbody id="topAgentsTable">
-          <tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280;">Loading leaderboard...</td></tr>
-        </tbody>
-      </table>
+      <!-- NEW: PAYMENT COMPARISON CHAT -->
+      <div class="chat-container">
+        <div class="card-title" style="margin-bottom: 0;">💬 Live Payment Comparison (Outsourcing Companies)</div>
+        
+        <div class="chat-message">
+          <div class="chat-avatar">A</div>
+          <div class="chat-bubble">
+            <div class="chat-header">
+              <span class="chat-company">Alpha Collections</span>
+              <span class="chat-amount">KES 145,000</span>
+            </div>
+            <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
+            <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 85%;"></div></div>
+          </div>
+        </div>
+
+        <div class="chat-message">
+          <div class="chat-avatar" style="background:#3b82f6;">B</div>
+          <div class="chat-bubble">
+            <div class="chat-header">
+              <span class="chat-company">Beta Recoveries</span>
+              <span class="chat-amount">KES 98,500</span>
+            </div>
+            <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
+            <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 60%; background: #3b82f6;"></div></div>
+          </div>
+        </div>
+
+        <div class="chat-message">
+          <div class="chat-avatar" style="background:#a855f7;">G</div>
+          <div class="chat-bubble">
+            <div class="chat-header">
+              <span class="chat-company">Gamma Debt Services</span>
+              <span class="chat-amount">KES 62,000</span>
+            </div>
+            <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
+            <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 35%; background: #a855f7;"></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- END OF CHAT -->
+
+      <!-- TOP AGENTS LEADERBOARD (Pushed down with margin-top) -->
+      <div class="card" style="margin-top: 40px;">
+        <div class="card-title">🏆 Top 10 Performing Agents (MTD)</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:70px;">Rank</th>
+                <th>Agent</th>
+                <th>Employee ID</th>
+                <th>Customers</th>
+                <th>Collected</th>
+                <th>Outsourced</th>
+                <th>Rate %</th>
+              </tr>
+            </thead>
+            <tbody id="topAgentsTable">
+              <tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280;">Loading leaderboard...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+
+    <!-- NEW: ADMIN MANAGEMENT -->
+    <div id="page-admin" class="hidden">
+      <div class="page-title">Admin Management</div>
+      
+      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <!-- Create Admin Form -->
+        <div class="card" style="flex: 1; min-width: 300px;">
+          <div class="card-title">Create New Admin</div>
+          <label>Full Name</label>
+          <input type="text" id="newAdminName" placeholder="John Doe">
+          <label>Employee ID</label>
+          <input type="text" id="newAdminId" placeholder="ADMIN002">
+          <label>Password</label>
+          <input type="password" id="newAdminPwd" placeholder="••••••••">
+          <button class="btn btn-primary" onclick="createAdmin()">Create Admin Account</button>
+        </div>
+
+        <!-- Edit Password Form -->
+        <div class="card" style="flex: 1; min-width: 300px;">
+          <div class="card-title">Edit Admin Password</div>
+          <label>Select Admin</label>
+          <select id="editAdminSelect">
+            <option value="">-- Select an Admin --</option>
+            <!-- Populated via JS -->
+          </select>
+          <label>New Password</label>
+          <input type="password" id="editAdminPwd" placeholder="••••••••">
+          <button class="btn btn-primary" onclick="updatePassword()">Update Password</button>
+        </div>
+      </div>
+    </div>
 
     <!-- UPLOAD -->
     <div id="page-upload" class="hidden">
@@ -207,7 +308,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div>
             <label>Order Type</label>
-            <select id="filterOrderType" style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+            <select id="filterOrderType">
               <option value="">All Types</option>
               <option value="Reloan">Reloan</option>
               <option value="First loan">First Loan</option>
@@ -215,9 +316,7 @@
           </div>
           <div>
             <label>Show First</label>
-            <input id="filterLimit" type="number" min="1" max="500" value="50"
-                   placeholder="e.g. 50"
-                   style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+            <input id="filterLimit" type="number" min="1" max="500" value="50" placeholder="e.g. 50">
           </div>
         </div>
         <div style="margin-top:16px;">
@@ -229,7 +328,7 @@
       <!-- STEP 2: Assign Agent -->
       <div class="card">
         <div class="card-title">Step 2: Select Agent</div>
-        <select id="agentSelect" style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+        <select id="agentSelect">
           <option value="">-- Loading --</option>
         </select>
       </div>
@@ -262,8 +361,7 @@
       <div class="page-title">All Customers</div>
       <div class="card">
         <input type="text" id="custSearch" placeholder="Search by name, phone, or loan ID..."
-          oninput="renderCustomers()"
-          style="width:100%;padding:10px;background:#0f1115;border:1px solid #23262d;border-radius:8px;color:#fff;">
+          oninput="renderCustomers()">
       </div>
       <div class="table-wrap">
         <table>
@@ -287,7 +385,7 @@
 
 <script>
 // ============================================================
-// CONFIG - REPLACE THIS WITH YOUR APPS SCRIPT WEB APP URL
+// CONFIG
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbwvDjV7tCyZQapgRTNxkKLRAYITYI7Iyg6rCnEySQWAt2g9rre4bpcv_Whu_HczaJZIKw/exec";
 
@@ -320,7 +418,6 @@ async function api(action, payload = {}) {
   }
 }
 
-// POST helper for large payloads (CSV uploads)
 async function apiPost(action, payload = {}) {
   showLoader(true);
   try {
@@ -387,6 +484,12 @@ function enterApp() {
   document.getElementById("appScreen").classList.add("active");
   document.getElementById("sideUserName").textContent = USER.fullName || USER.employeeId;
   document.getElementById("sideUserRole").textContent = USER.role || "Admin";
+  
+  // Populate mock data for Admin dropdown (Replace this with real API data later)
+  const adminSel = document.getElementById("editAdminSelect");
+  adminSel.innerHTML += `<option value="ADMIN001">Admin One (ADMIN001)</option>`;
+  adminSel.innerHTML += `<option value="ADMIN002">Admin Two (ADMIN002)</option>`;
+
   loadAll();
 }
 
@@ -412,11 +515,27 @@ async function loadAll() {
   const res = await api("adminGetCustomers");
   if (res.success) {
     CUSTOMERS = res.customers || [];
-updateStats();
-loadTopAgents();      
-renderCustomers();
-loadUnassigned();
+    updateStats();
+    loadTopAgents();      
+    renderCustomers();
+    loadUnassigned();
   }
+
+  const agentRes = await api("adminGetAgents");
+  if (agentRes.success) {
+    AGENTS = agentRes.agents || [];
+    const sel = document.getElementById("agentSelect");
+    sel.innerHTML = '<option value="">-- Select Agent --</option>' +
+      AGENTS.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
+
+    // Auto-apply filters when changed
+    const ft = document.getElementById("filterOrderType");
+    const fl = document.getElementById("filterLimit");
+    if (ft) ft.addEventListener("change", loadUnassigned);
+    if (fl) fl.addEventListener("change", loadUnassigned);
+  }
+}
+
 // ============================================================
 // TOP AGENTS LEADERBOARD
 // ============================================================
@@ -453,26 +572,50 @@ async function loadTopAgents() {
     `;
   }).join("");
 }
-  const agentRes = await api("adminGetAgents");
-  if (agentRes.success) {
-    AGENTS = agentRes.agents || [];
-    const sel = document.getElementById("agentSelect");
-    sel.innerHTML = '<option value="">-- Select Agent --</option>' +
-      AGENTS.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
-
-    // Auto-apply filters when changed
-    const ft = document.getElementById("filterOrderType");
-    const fl = document.getElementById("filterLimit");
-    if (ft) ft.addEventListener("change", loadUnassigned);
-    if (fl) fl.addEventListener("change", loadUnassigned);
-  }
-}
 
 function updateStats() {
   document.getElementById("statTotal").textContent = CUSTOMERS.length;
   document.getElementById("statUnassigned").textContent = CUSTOMERS.filter(c => !c.assignTo).length;
   document.getElementById("statAssigned").textContent = CUSTOMERS.filter(c => c.assignTo && c.status !== "Paid").length;
   document.getElementById("statPaid").textContent = CUSTOMERS.filter(c => c.status === "Paid").length;
+}
+
+// ============================================================
+// NEW: ADMIN MANAGEMENT ACTIONS
+// ============================================================
+function createAdmin() {
+  const name = document.getElementById("newAdminName").value;
+  const id = document.getElementById("newAdminId").value;
+  const pwd = document.getElementById("newAdminPwd").value;
+
+  if (!name || !id || !pwd) {
+    toast("Please fill all fields", true);
+    return;
+  }
+  
+  // TODO: Add your API call here to save the admin to the database
+  // Example: api("createAdmin", { name, id, pwd })
+  
+  toast("Admin created successfully! (Mock)");
+  document.getElementById("newAdminName").value = "";
+  document.getElementById("newAdminId").value = "";
+  document.getElementById("newAdminPwd").value = "";
+}
+
+function updatePassword() {
+  const id = document.getElementById("editAdminSelect").value;
+  const pwd = document.getElementById("editAdminPwd").value;
+
+  if (!id || !pwd) {
+    toast("Please select an admin and enter a new password", true);
+    return;
+  }
+
+  // TODO: Add your API call here to update the password
+  // Example: api("updateAdminPassword", { id, pwd })
+
+  toast("Password updated successfully! (Mock)");
+  document.getElementById("editAdminPwd").value = "";
 }
 
 // ============================================================
