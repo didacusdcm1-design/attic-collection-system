@@ -37,6 +37,10 @@
   .btn-primary:active { opacity: 0.85; }
   .btn-secondary { background: #23262d; color: #e5e7eb; border: 1px solid #2e333d; }
   .btn-secondary:hover { background: #2e333d; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-warning { background: #f59e0b; color: #000; }
+  .btn-warning:hover { background: #d97706; }
   .error {
     background: #dc2626; color: #fff; padding: 12px; border-radius: 8px;
     text-align: center; font-size: 13px; margin-top: 16px; display: none;
@@ -84,6 +88,8 @@
   .badge.assigned { background: #1a3a2e; color: #22c55e; }
   .badge.processing { background: #1a2e3a; color: #3b82f6; }
   .badge.paid { background: #2a1a3a; color: #a855f7; }
+  .badge.active { background: #1a3a2e; color: #22c55e; }
+  .badge.disabled { background: #7f1d1d; color: #fca5a5; }
   .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 20px; }
   .stat-box { background: #16181d; border: 1px solid #23262d; border-radius: 12px; padding: 16px; }
   .stat-box .num { font-size: 26px; font-weight: 800; color: #22c55e; }
@@ -186,8 +192,6 @@
       <!-- DYNAMIC: PAYMENT COMPARISON CHAT -->
       <div class="chat-container">
         <div class="card-title" style="margin-bottom: 0;">💬 Live Payment Comparison (Outsourcing Companies)</div>
-        
-        <!-- The JS will inject the real data here -->
         <div id="paymentChatContainer" style="display: flex; flex-direction: column; gap: 15px;">
           <div style="color:#6b7280; font-size:14px; text-align:center; padding: 20px;">Loading real-time data...</div>
         </div>
@@ -221,9 +225,9 @@
     <div id="page-admin" class="hidden">
       <div class="page-title">Admin Management</div>
       
-      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
         <!-- Create Admin Form -->
-        <div class="card" style="flex: 1; min-width: 300px;">
+        <div class="card" style="flex: 1; min-width: 300px; margin-bottom: 0;">
           <div class="card-title">Create New Admin</div>
           <label>Full Name</label>
           <input type="text" id="newAdminName" placeholder="John Doe">
@@ -235,7 +239,7 @@
         </div>
 
         <!-- Edit Password Form -->
-        <div class="card" style="flex: 1; min-width: 300px;">
+        <div class="card" style="flex: 1; min-width: 300px; margin-bottom: 0;">
           <div class="card-title">Edit Admin Password</div>
           <label>Select Admin</label>
           <select id="editAdminSelect">
@@ -244,6 +248,28 @@
           <label>New Password</label>
           <input type="password" id="editAdminPwd" placeholder="••••••••">
           <button class="btn btn-primary" onclick="updatePassword()">Update Password</button>
+        </div>
+      </div>
+
+      <!-- BLOCK / UNBLOCK USERS SECTION -->
+      <div class="card" id="blockUsersCard">
+        <div class="card-title">🚫 Block / Unblock Admins</div>
+        <p style="font-size:12px; color:#9ca3af; margin-bottom:15px;">Only ADMIN001 and ADMIN002 can access this section.</p>
+        
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Full Name</th>
+                <th>Employee ID</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="blockUsersTableBody">
+              <tr><td colspan="4" style="text-align:center;padding:20px;color:#6b7280;">Loading...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -267,7 +293,6 @@
     <div id="page-assign" class="hidden">
       <div class="page-title">Assign Customers to Agents</div>
 
-      <!-- STEP 1: Filters -->
       <div class="card">
         <div class="card-title">Step 1: Filter Customers</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -290,7 +315,6 @@
         </div>
       </div>
 
-      <!-- STEP 2: Assign Agent -->
       <div class="card">
         <div class="card-title">Step 2: Select Agent</div>
         <select id="agentSelect">
@@ -298,7 +322,6 @@
         </select>
       </div>
 
-      <!-- STEP 3: Select & Assign -->
       <div class="card">
         <div class="card-title">Step 3: Select Customers (<span id="selectedCount">0</span> selected)</div>
         <div class="table-wrap">
@@ -349,15 +372,13 @@
 <div id="loader"><div class="spinner"></div></div>
 
 <script>
-// ============================================================
-// CONFIG
-// ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbwvDjV7tCyZQapgRTNxkKLRAYITYI7Iyg6rCnEySQWAt2g9rre4bpcv_Whu_HczaJZIKw/exec";
 
 let USER = null;
 let CUSTOMERS = [];
 let AGENTS = [];
 let selectedIds = new Set();
+let ALL_ADMINS = [];
 
 // ============================================================
 // API CALL
@@ -374,7 +395,6 @@ async function api(action, payload = {}) {
     });
     const res = await fetch(API_URL + "?" + params.toString());
     const text = await res.text();
-    console.log("API [" + action + "]:", text);
     return JSON.parse(text);
   } catch (err) {
     return { success: false, message: err.message };
@@ -383,32 +403,22 @@ async function api(action, payload = {}) {
   }
 }
 
-async function apiPost(action, payload = {}) {
-  showLoader(true);
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: action, ...payload })
-    });
-    const text = await res.text();
-    console.log("POST [" + action + "]:", text.substring(0, 300));
-    return JSON.parse(text);
-  } catch (err) {
-    return { success: false, message: "Network error: " + err.message };
-  } finally {
-    showLoader(false);
-  }
-}
-
 // ============================================================
-// STARTUP
+// STARTUP & AUTH GUARD
 // ============================================================
 window.addEventListener("DOMContentLoaded", () => {
   const saved = localStorage.getItem("attic_admin_user");
   if (saved) {
-    USER = JSON.parse(saved);
-    enterApp();
+    try {
+      USER = JSON.parse(saved);
+      enterApp();
+    } catch(e) {
+      localStorage.removeItem("attic_admin_user");
+      document.getElementById("loginScreen").style.display = "flex";
+    }
+  } else {
+    // Force login screen if no user found
+    document.getElementById("loginScreen").style.display = "flex";
   }
 });
 
@@ -467,9 +477,9 @@ function showPage(page, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
   
-  // If opening Admin page, fetch latest admins
   if (page === 'admin') {
     loadAdminDropdown();
+    loadBlockUsersList();
   }
 }
 
@@ -531,8 +541,9 @@ async function loadAdminDropdown() {
   
   const res = await api("adminGetAdmins");
   if (res.success) {
+    ALL_ADMINS = res.admins;
     sel.innerHTML = '<option value="">-- Select Admin --</option>' + 
-      res.admins.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
+      ALL_ADMINS.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
   } else {
     sel.innerHTML = '<option value="">Failed to load admins</option>';
   }
@@ -556,6 +567,7 @@ async function createAdmin() {
     document.getElementById("newAdminId").value = "";
     document.getElementById("newAdminPwd").value = "";
     loadAdminDropdown();
+    loadBlockUsersList();
   } else {
     toast(res.message || "Failed to create admin", true);
   }
@@ -581,6 +593,79 @@ async function updatePassword() {
 }
 
 // ============================================================
+// BLOCK / UNBLOCK LOGIC
+// ============================================================
+async function loadBlockUsersList() {
+  const tbody = document.getElementById("blockUsersTableBody");
+  const card = document.getElementById("blockUsersCard");
+  
+  // Only ADMIN001 and ADMIN002 can see the block list
+  if (USER.employeeId !== "ADMIN001" && USER.employeeId !== "ADMIN002") {
+    card.classList.add("hidden");
+    return;
+  } else {
+    card.classList.remove("hidden");
+  }
+
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#6b7280;">Loading...</td></tr>';
+  
+  const res = await api("adminGetAdmins");
+  if (!res.success) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#dc2626;">Failed to load</td></tr>';
+    return;
+  }
+
+  ALL_ADMINS = res.admins;
+  
+  if (ALL_ADMINS.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#6b7280;">No admins found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = ALL_ADMINS.map(a => {
+    // Default to "active" if status is missing
+    const status = a.status || "active"; 
+    const isSuperAdmin = a.employeeId === "ADMIN001" || a.employeeId === "ADMIN002";
+    const isActive = status.toLowerCase() === "active";
+    
+    return `
+      <tr>
+        <td><strong>${esc(a.fullName)}</strong></td>
+        <td>${esc(a.employeeId)}</td>
+        <td><span class="badge ${isActive ? 'active' : 'disabled'}">${status.toUpperCase()}</span></td>
+        <td>
+          ${isSuperAdmin 
+            ? '<span style="color:#6b7280; font-size:12px;">Protected</span>' 
+            : `<button class="btn ${isActive ? 'btn-danger' : 'btn-warning'}" 
+                 style="padding:6px 12px; font-size:12px;"
+                 onclick="toggleStatus('${a.employeeId}', '${isActive ? 'disabled' : 'active'}')">
+                 ${isActive ? 'Block' : 'Unblock'}
+               </button>`
+          }
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function toggleStatus(id, newStatus) {
+  if (!confirm(`Are you sure you want to ${newStatus === 'disabled' ? 'BLOCK' : 'UNBLOCK'} ${id}?`)) return;
+
+  const res = await api("adminToggleStatus", { 
+    id: id, 
+    status: newStatus, 
+    requester: USER.employeeId 
+  });
+
+  if (res.success) {
+    toast(`Admin ${id} is now ${newStatus}`);
+    loadBlockUsersList();
+  } else {
+    toast(res.message || "Action failed", true);
+  }
+}
+
+// ============================================================
 // LOAD DATA
 // ============================================================
 async function loadAll() {
@@ -592,7 +677,6 @@ async function loadAll() {
     renderCustomers();
     loadUnassigned();
 
-    // NEW: Load analytics just for the payment chat
     const analyticsRes = await api("getAnalytics");
     if (analyticsRes.success) {
       renderPaymentChat(analyticsRes.companies);
