@@ -95,9 +95,7 @@
     background: #16181d; border: 1px solid #23262d; border-radius: 12px;
     padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px;
   }
-  .chat-message {
-    display: flex; align-items: flex-start; gap: 12px;
-  }
+  .chat-message { display: flex; align-items: flex-start; gap: 12px; }
   .chat-avatar {
     width: 36px; height: 36px; border-radius: 50%; background: #22c55e; color: #000;
     display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 14px;
@@ -111,7 +109,7 @@
   .chat-company { font-weight: 700; color: #fff; }
   .chat-amount { font-weight: 800; color: #22c55e; }
   .chat-bar-bg { width: 100%; height: 6px; background: #0f1115; border-radius: 3px; margin-top: 8px; overflow: hidden; }
-  .chat-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; transition: width 1s ease-in-out; }
+  .chat-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; }
 
   /* ================= TOAST / LOADER ================= */
   #toast {
@@ -225,9 +223,8 @@
           </div>
         </div>
       </div>
-      <!-- END OF CHAT -->
 
-      <!-- TOP AGENTS LEADERBOARD (Pushed down with margin-top) -->
+      <!-- TOP AGENTS LEADERBOARD (Pushed down) -->
       <div class="card" style="margin-top: 40px;">
         <div class="card-title">🏆 Top 10 Performing Agents (MTD)</div>
         <div class="table-wrap">
@@ -251,7 +248,7 @@
       </div>
     </div>
 
-    <!-- NEW: ADMIN MANAGEMENT -->
+    <!-- NEW: ADMIN MANAGEMENT PAGE -->
     <div id="page-admin" class="hidden">
       <div class="page-title">Admin Management</div>
       
@@ -273,8 +270,7 @@
           <div class="card-title">Edit Admin Password</div>
           <label>Select Admin</label>
           <select id="editAdminSelect">
-            <option value="">-- Select an Admin --</option>
-            <!-- Populated via JS -->
+            <option value="">-- Loading Admins --</option>
           </select>
           <label>New Password</label>
           <input type="password" id="editAdminPwd" placeholder="••••••••">
@@ -485,11 +481,6 @@ function enterApp() {
   document.getElementById("sideUserName").textContent = USER.fullName || USER.employeeId;
   document.getElementById("sideUserRole").textContent = USER.role || "Admin";
   
-  // Populate mock data for Admin dropdown (Replace this with real API data later)
-  const adminSel = document.getElementById("editAdminSelect");
-  adminSel.innerHTML += `<option value="ADMIN001">Admin One (ADMIN001)</option>`;
-  adminSel.innerHTML += `<option value="ADMIN002">Admin Two (ADMIN002)</option>`;
-
   loadAll();
 }
 
@@ -506,6 +497,69 @@ function showPage(page, el) {
   document.getElementById('page-' + page).classList.remove('hidden');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
+  
+  // If opening Admin page, fetch latest admins
+  if (page === 'admin') {
+    loadAdminDropdown();
+  }
+}
+
+// ============================================================
+// NEW: ADMIN MANAGEMENT ACTIONS
+// ============================================================
+async function loadAdminDropdown() {
+  const sel = document.getElementById("editAdminSelect");
+  sel.innerHTML = '<option value="">-- Loading Admins... --</option>';
+  
+  const res = await api("adminGetAdmins");
+  if (res.success) {
+    sel.innerHTML = '<option value="">-- Select Admin --</option>' + 
+      res.admins.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
+  } else {
+    sel.innerHTML = '<option value="">Failed to load admins</option>';
+  }
+}
+
+async function createAdmin() {
+  const name = document.getElementById("newAdminName").value;
+  const id = document.getElementById("newAdminId").value;
+  const pwd = document.getElementById("newAdminPwd").value;
+
+  if (!name || !id || !pwd) {
+    toast("Please fill all fields", true);
+    return;
+  }
+  
+  const res = await api("createAdmin", { name: name, id: id, pwd: pwd });
+  
+  if (res.success) {
+    toast("Admin created successfully!");
+    document.getElementById("newAdminName").value = "";
+    document.getElementById("newAdminId").value = "";
+    document.getElementById("newAdminPwd").value = "";
+    loadAdminDropdown(); // Refresh dropdown
+  } else {
+    toast(res.message || "Failed to create admin", true);
+  }
+}
+
+async function updatePassword() {
+  const id = document.getElementById("editAdminSelect").value;
+  const pwd = document.getElementById("editAdminPwd").value;
+
+  if (!id || !pwd) {
+    toast("Please select an admin and enter a new password", true);
+    return;
+  }
+
+  const res = await api("updateAdminPassword", { id: id, newPwd: pwd });
+
+  if (res.success) {
+    toast("Password updated successfully!");
+    document.getElementById("editAdminPwd").value = "";
+  } else {
+    toast(res.message || "Failed to update password", true);
+  }
 }
 
 // ============================================================
@@ -528,7 +582,6 @@ async function loadAll() {
     sel.innerHTML = '<option value="">-- Select Agent --</option>' +
       AGENTS.map(a => `<option value="${a.employeeId}">${a.fullName} (${a.employeeId})</option>`).join("");
 
-    // Auto-apply filters when changed
     const ft = document.getElementById("filterOrderType");
     const fl = document.getElementById("filterLimit");
     if (ft) ft.addEventListener("change", loadUnassigned);
@@ -578,44 +631,6 @@ function updateStats() {
   document.getElementById("statUnassigned").textContent = CUSTOMERS.filter(c => !c.assignTo).length;
   document.getElementById("statAssigned").textContent = CUSTOMERS.filter(c => c.assignTo && c.status !== "Paid").length;
   document.getElementById("statPaid").textContent = CUSTOMERS.filter(c => c.status === "Paid").length;
-}
-
-// ============================================================
-// NEW: ADMIN MANAGEMENT ACTIONS
-// ============================================================
-function createAdmin() {
-  const name = document.getElementById("newAdminName").value;
-  const id = document.getElementById("newAdminId").value;
-  const pwd = document.getElementById("newAdminPwd").value;
-
-  if (!name || !id || !pwd) {
-    toast("Please fill all fields", true);
-    return;
-  }
-  
-  // TODO: Add your API call here to save the admin to the database
-  // Example: api("createAdmin", { name, id, pwd })
-  
-  toast("Admin created successfully! (Mock)");
-  document.getElementById("newAdminName").value = "";
-  document.getElementById("newAdminId").value = "";
-  document.getElementById("newAdminPwd").value = "";
-}
-
-function updatePassword() {
-  const id = document.getElementById("editAdminSelect").value;
-  const pwd = document.getElementById("editAdminPwd").value;
-
-  if (!id || !pwd) {
-    toast("Please select an admin and enter a new password", true);
-    return;
-  }
-
-  // TODO: Add your API call here to update the password
-  // Example: api("updateAdminPassword", { id, pwd })
-
-  toast("Password updated successfully! (Mock)");
-  document.getElementById("editAdminPwd").value = "";
 }
 
 // ============================================================
