@@ -252,7 +252,7 @@
   <div class="nav-item" onclick="window.location.href='index.html'"><span>📋</span> All Customers</div>
   <div class="nav-item active"><span>📈</span> Analytics Dashboard</div>
   
-  <!-- NEW TAB -->
+  <!-- ADMIN MANAGEMENT TAB -->
   <div class="nav-item" onclick="openAdminModal()"><span>🛡️</span> Admin Management</div>
   
   <div class="nav-item" onclick="window.location.href='index.html'" style="margin-top:auto; color:#dc2626;"><span>🚪</span> Logout</div>
@@ -284,9 +284,9 @@
   <!-- DYNAMIC: PAYMENT COMPARISON CHAT -->
   <div class="chat-container">
     <div class="panel-title" style="margin-bottom: 0; border:none; padding:0;">💬 Live Payment Comparison (Outsourcing Companies)</div>
+    <!-- The JS will inject the real data here -->
     <div id="paymentChatContainer" style="display: flex; flex-direction: column; gap: 15px;">
-      <!-- JS will inject chat bubbles here -->
-      <div style="color:#6b7280; font-size:14px; text-align:center; padding: 20px;">Loading payment data...</div>
+      <div style="color:#6b7280; font-size:14px; text-align:center; padding: 20px;">Loading real-time data...</div>
     </div>
   </div>
 
@@ -530,7 +530,7 @@ async function loadDashboard() {
 
   populateCompanyFilter(res.companies);
   renderKPIs();
-  renderPaymentChat(res.companies); // <-- Renders the Dynamic Chat
+  renderPaymentChat(res.companies); // <-- Renders the real data chat
   renderSummaryTable();
   renderCompanySections();
   renderGrandTotal();
