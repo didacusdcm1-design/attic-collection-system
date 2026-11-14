@@ -171,7 +171,7 @@
   .subtotal-value span { color: #22c55e; font-size: 22px; margin-right: 8px; }
   .subtotal-note { color: #6b7280; font-size: 11px; margin-top: 10px; }
 
-  /* ================= NEW: PAYMENT COMPARISON CHAT ================= */
+  /* ================= DYNAMIC PAYMENT COMPARISON CHAT ================= */
   .chat-container {
     background: #16181d; border: 1px solid #23262d; border-radius: 12px;
     padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px;
@@ -190,7 +190,7 @@
   .chat-company { font-weight: 700; color: #fff; }
   .chat-amount { font-weight: 800; color: #22c55e; }
   .chat-bar-bg { width: 100%; height: 6px; background: #0f1115; border-radius: 3px; margin-top: 8px; overflow: hidden; }
-  .chat-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; }
+  .chat-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; transition: width 1s ease-in-out; }
 
   /* MODAL (For Admin Management) */
   .modal-overlay {
@@ -281,44 +281,12 @@
   <!-- KPI CARDS -->
   <div class="kpi-grid" id="kpiGrid"></div>
 
-  <!-- NEW: PAYMENT COMPARISON CHAT -->
+  <!-- DYNAMIC: PAYMENT COMPARISON CHAT -->
   <div class="chat-container">
     <div class="panel-title" style="margin-bottom: 0; border:none; padding:0;">💬 Live Payment Comparison (Outsourcing Companies)</div>
-    
-    <div class="chat-message">
-      <div class="chat-avatar">A</div>
-      <div class="chat-bubble">
-        <div class="chat-header">
-          <span class="chat-company">Alpha Collections</span>
-          <span class="chat-amount">KES 145,000</span>
-        </div>
-        <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
-        <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 85%;"></div></div>
-      </div>
-    </div>
-
-    <div class="chat-message">
-      <div class="chat-avatar" style="background:#3b82f6;">B</div>
-      <div class="chat-bubble">
-        <div class="chat-header">
-          <span class="chat-company">Beta Recoveries</span>
-          <span class="chat-amount">KES 98,500</span>
-        </div>
-        <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
-        <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 60%; background: #3b82f6;"></div></div>
-      </div>
-    </div>
-
-    <div class="chat-message">
-      <div class="chat-avatar" style="background:#a855f7;">G</div>
-      <div class="chat-bubble">
-        <div class="chat-header">
-          <span class="chat-company">Gamma Debt Services</span>
-          <span class="chat-amount">KES 62,000</span>
-        </div>
-        <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
-        <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 35%; background: #a855f7;"></div></div>
-      </div>
+    <div id="paymentChatContainer" style="display: flex; flex-direction: column; gap: 15px;">
+      <!-- JS will inject chat bubbles here -->
+      <div style="color:#6b7280; font-size:14px; text-align:center; padding: 20px;">Loading payment data...</div>
     </div>
   </div>
 
@@ -366,7 +334,7 @@
 
 </div>
 
-<!-- NEW: ADMIN MANAGEMENT MODAL -->
+<!-- ADMIN MANAGEMENT MODAL -->
 <div class="modal-overlay" id="adminModal">
   <div class="modal-content">
     <h2>🛡️ Admin Management</h2>
@@ -428,12 +396,67 @@ async function api(action, payload = {}) {
 }
 
 // ============================================================
-// ADMIN MODAL LOGIC (Connected to Backend)
+// DYNAMIC PAYMENT COMPARISON CHAT RENDERER
+// ============================================================
+function renderPaymentChat(companies) {
+  const container = document.getElementById("paymentChatContainer");
+  if (!container) return;
+
+  // 1. Sort companies by totalCollected (highest first) and take top 5
+  const topCompanies = companies
+    .filter(c => c.totalCollected > 0)
+    .sort((a, b) => b.totalCollected - a.totalCollected)
+    .slice(0, 5);
+
+  if (topCompanies.length === 0) {
+    container.innerHTML = '<div style="color:#6b7280; font-size:14px; text-align:center; padding: 20px;">No payments recorded yet.</div>';
+    return;
+  }
+
+  // 2. Find the highest amount to calculate the progress bar widths
+  const maxAmount = topCompanies[0].totalCollected;
+
+  // Colors for the avatars and bars
+  const colors = [
+    { bg: "#22c55e", bar: "#22c55e" }, // Green
+    { bg: "#3b82f6", bar: "#3b82f6" }, // Blue
+    { bg: "#a855f7", bar: "#a855f7" }, // Purple
+    { bg: "#f59e0b", bar: "#f59e0b" }, // Orange
+    { bg: "#ef4444", bar: "#ef4444" }  // Red
+  ];
+
+  // 3. Generate the HTML
+  container.innerHTML = topCompanies.map((c, idx) => {
+    const initial = c.name.charAt(0).toUpperCase(); // First letter of company name
+    const color = colors[idx % colors.length];
+    
+    // Calculate percentage for the bar (min 5% so it's always visible)
+    const percent = Math.max((c.totalCollected / maxAmount) * 100, 5);
+
+    return `
+      <div class="chat-message">
+        <div class="chat-avatar" style="background:${color.bg}; color:#fff;">${initial}</div>
+        <div class="chat-bubble">
+          <div class="chat-header">
+            <span class="chat-company">${esc(c.name)}</span>
+            <span class="chat-amount">KES ${c.totalCollected.toLocaleString()}</span>
+          </div>
+          <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
+          <div class="chat-bar-bg">
+            <div class="chat-bar-fill" style="width: ${percent}%; background: ${color.bar};"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ============================================================
+// ADMIN MODAL LOGIC
 // ============================================================
 async function openAdminModal() {
   document.getElementById("adminModal").classList.add("active");
   
-  // Fetch the list of admins from the backend
   const res = await api("adminGetAdmins");
   const sel = document.getElementById("editAdminSelect");
   
@@ -507,6 +530,7 @@ async function loadDashboard() {
 
   populateCompanyFilter(res.companies);
   renderKPIs();
+  renderPaymentChat(res.companies); // <-- Renders the Dynamic Chat
   renderSummaryTable();
   renderCompanySections();
   renderGrandTotal();
@@ -520,6 +544,7 @@ function populateCompanyFilter(companies) {
   sel.value = current || "all";
   sel.onchange = () => {
     renderKPIs();
+    renderPaymentChat(getFilteredCompanies()); // Update chat on filter change
     renderSummaryTable();
     renderCompanySections();
     renderGrandTotal();
