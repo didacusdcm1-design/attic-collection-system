@@ -90,7 +90,7 @@
   .stat-box .lbl { font-size: 11px; color: #9ca3af; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
   .hidden { display: none !important; }
 
-  /* ================= NEW: PAYMENT COMPARISON CHAT ================= */
+  /* ================= DYNAMIC PAYMENT COMPARISON CHAT ================= */
   .chat-container {
     background: #16181d; border: 1px solid #23262d; border-radius: 12px;
     padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px;
@@ -109,7 +109,7 @@
   .chat-company { font-weight: 700; color: #fff; }
   .chat-amount { font-weight: 800; color: #22c55e; }
   .chat-bar-bg { width: 100%; height: 6px; background: #0f1115; border-radius: 3px; margin-top: 8px; overflow: hidden; }
-  .chat-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; }
+  .chat-bar-fill { height: 100%; background: #22c55e; border-radius: 3px; transition: width 1s ease-in-out; }
 
   /* ================= TOAST / LOADER ================= */
   #toast {
@@ -166,7 +166,7 @@
     <div class="nav-item" onclick="showPage('customers', this)"><span>📋</span> All Customers</div>
     <div class="nav-item" onclick="window.open('dashboard.html', '_blank')"><span>📈</span> Analytics Dashboard</div>
     
-    <!-- NEW ADMIN MANAGEMENT TAB -->
+    <!-- ADMIN MANAGEMENT TAB -->
     <div class="nav-item" onclick="showPage('admin', this)"><span>🛡️</span> Admin Management</div>
     
     <div class="nav-item" onclick="doLogout()" style="margin-top:auto; color:#dc2626;"><span>🚪</span> Logout</div>
@@ -183,48 +183,17 @@
         <div class="stat-box"><div class="num" id="statPaid">0</div><div class="lbl">Paid</div></div>
       </div>
 
-      <!-- NEW: PAYMENT COMPARISON CHAT -->
+      <!-- DYNAMIC: PAYMENT COMPARISON CHAT -->
       <div class="chat-container">
         <div class="card-title" style="margin-bottom: 0;">💬 Live Payment Comparison (Outsourcing Companies)</div>
         
-        <div class="chat-message">
-          <div class="chat-avatar">A</div>
-          <div class="chat-bubble">
-            <div class="chat-header">
-              <span class="chat-company">Alpha Collections</span>
-              <span class="chat-amount">KES 145,000</span>
-            </div>
-            <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
-            <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 85%;"></div></div>
-          </div>
-        </div>
-
-        <div class="chat-message">
-          <div class="chat-avatar" style="background:#3b82f6;">B</div>
-          <div class="chat-bubble">
-            <div class="chat-header">
-              <span class="chat-company">Beta Recoveries</span>
-              <span class="chat-amount">KES 98,500</span>
-            </div>
-            <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
-            <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 60%; background: #3b82f6;"></div></div>
-          </div>
-        </div>
-
-        <div class="chat-message">
-          <div class="chat-avatar" style="background:#a855f7;">G</div>
-          <div class="chat-bubble">
-            <div class="chat-header">
-              <span class="chat-company">Gamma Debt Services</span>
-              <span class="chat-amount">KES 62,000</span>
-            </div>
-            <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
-            <div class="chat-bar-bg"><div class="chat-bar-fill" style="width: 35%; background: #a855f7;"></div></div>
-          </div>
+        <!-- The JS will inject the real data here -->
+        <div id="paymentChatContainer" style="display: flex; flex-direction: column; gap: 15px;">
+          <div style="color:#6b7280; font-size:14px; text-align:center; padding: 20px;">Loading real-time data...</div>
         </div>
       </div>
 
-      <!-- TOP AGENTS LEADERBOARD (Pushed down) -->
+      <!-- TOP AGENTS LEADERBOARD -->
       <div class="card" style="margin-top: 40px;">
         <div class="card-title">🏆 Top 10 Performing Agents (MTD)</div>
         <div class="table-wrap">
@@ -248,7 +217,7 @@
       </div>
     </div>
 
-    <!-- NEW: ADMIN MANAGEMENT PAGE -->
+    <!-- ADMIN MANAGEMENT PAGE -->
     <div id="page-admin" class="hidden">
       <div class="page-title">Admin Management</div>
       
@@ -505,7 +474,56 @@ function showPage(page, el) {
 }
 
 // ============================================================
-// NEW: ADMIN MANAGEMENT ACTIONS
+// DYNAMIC PAYMENT COMPARISON CHAT RENDERER
+// ============================================================
+function renderPaymentChat(companies) {
+  const container = document.getElementById("paymentChatContainer");
+  if (!container) return;
+
+  const topCompanies = companies
+    .filter(c => c.totalCollected > 0)
+    .sort((a, b) => b.totalCollected - a.totalCollected)
+    .slice(0, 5);
+
+  if (topCompanies.length === 0) {
+    container.innerHTML = '<div style="color:#6b7280; font-size:14px; text-align:center; padding: 20px;">No payments recorded yet.</div>';
+    return;
+  }
+
+  const maxAmount = topCompanies[0].totalCollected;
+  const colors = [
+    { bg: "#22c55e", bar: "#22c55e" },
+    { bg: "#3b82f6", bar: "#3b82f6" },
+    { bg: "#a855f7", bar: "#a855f7" },
+    { bg: "#f59e0b", bar: "#f59e0b" },
+    { bg: "#ef4444", bar: "#ef4444" }
+  ];
+
+  container.innerHTML = topCompanies.map((c, idx) => {
+    const initial = c.name.charAt(0).toUpperCase();
+    const color = colors[idx % colors.length];
+    const percent = Math.max((c.totalCollected / maxAmount) * 100, 5);
+
+    return `
+      <div class="chat-message">
+        <div class="chat-avatar" style="background:${color.bg}; color:#fff;">${initial}</div>
+        <div class="chat-bubble">
+          <div class="chat-header">
+            <span class="chat-company">${esc(c.name)}</span>
+            <span class="chat-amount">KES ${c.totalCollected.toLocaleString()}</span>
+          </div>
+          <div style="font-size: 12px; color: #9ca3af;">Total collected this MTD</div>
+          <div class="chat-bar-bg">
+            <div class="chat-bar-fill" style="width: ${percent}%; background: ${color.bar};"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ============================================================
+// ADMIN MANAGEMENT ACTIONS
 // ============================================================
 async function loadAdminDropdown() {
   const sel = document.getElementById("editAdminSelect");
@@ -537,7 +555,7 @@ async function createAdmin() {
     document.getElementById("newAdminName").value = "";
     document.getElementById("newAdminId").value = "";
     document.getElementById("newAdminPwd").value = "";
-    loadAdminDropdown(); // Refresh dropdown
+    loadAdminDropdown();
   } else {
     toast(res.message || "Failed to create admin", true);
   }
@@ -573,6 +591,12 @@ async function loadAll() {
     loadTopAgents();      
     renderCustomers();
     loadUnassigned();
+
+    // NEW: Load analytics just for the payment chat
+    const analyticsRes = await api("getAnalytics");
+    if (analyticsRes.success) {
+      renderPaymentChat(analyticsRes.companies);
+    }
   }
 
   const agentRes = await api("adminGetAgents");
