@@ -381,7 +381,7 @@ let selectedIds = new Set();
 let ALL_ADMINS = [];
 
 // ============================================================
-// API CALL
+// API CALLS (GET for standard data, POST for large uploads)
 // ============================================================
 async function api(action, payload = {}) {
   showLoader(true);
@@ -394,6 +394,23 @@ async function api(action, payload = {}) {
       }
     });
     const res = await fetch(API_URL + "?" + params.toString());
+    const text = await res.text();
+    return JSON.parse(text);
+  } catch (err) {
+    return { success: false, message: err.message };
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function apiPost(action, payload = {}) {
+  showLoader(true);
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // GAS requires text/plain to avoid CORS preflight
+      body: JSON.stringify({ action: action, ...payload })
+    });
     const text = await res.text();
     return JSON.parse(text);
   } catch (err) {
@@ -417,7 +434,6 @@ window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("loginScreen").style.display = "flex";
     }
   } else {
-    // Force login screen if no user found
     document.getElementById("loginScreen").style.display = "flex";
   }
 });
@@ -623,7 +639,6 @@ async function loadBlockUsersList() {
   }
 
   tbody.innerHTML = ALL_ADMINS.map(a => {
-    // Default to "active" if status is missing
     const status = a.status || "active"; 
     const isSuperAdmin = a.employeeId === "ADMIN001" || a.employeeId === "ADMIN002";
     const isActive = status.toLowerCase() === "active";
@@ -742,7 +757,7 @@ function updateStats() {
 }
 
 // ============================================================
-// CSV UPLOAD
+// CSV UPLOAD (Fixed to use apiPost)
 // ============================================================
 async function uploadCSV() {
   const fi = document.getElementById("csvFile");
@@ -752,12 +767,16 @@ async function uploadCSV() {
   const rows = parseCSV(text);
   if (rows.length < 2) { toast("Empty CSV", true); return; }
 
+  // Strip out completely empty rows
   const data = rows.slice(1).filter(r => r.length > 0 && r[0]);
   if (!confirm(`Upload ${data.length} customers?`)) return;
 
   const res = await apiPost("adminUploadCustomers", { csvData: data });
   toast(res.message, !res.success);
-  if (res.success) { fi.value = ""; loadAll(); }
+  if (res.success) { 
+    fi.value = ""; 
+    loadAll(); 
+  }
 }
 
 function parseCSV(text) {
